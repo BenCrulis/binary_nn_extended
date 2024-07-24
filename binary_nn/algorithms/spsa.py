@@ -17,8 +17,8 @@ class SPSA(ConfigurableMixin):
         self.c = c
         self.modules_to_hook = modules_to_hook
 
-    def _generate_perturbation(self, shape):
-        return torch.distributions.Bernoulli(probs=torch.tensor([0.5])).sample(shape).squeeze(-1) * 2 - 1
+    def _generate_perturbation(self, shape, device=None):
+        return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(-1) * 2 - 1
 
     @torch.no_grad()
     def __call__(self, model, x, y, opt: Optimizer, loss_fn):
@@ -44,7 +44,7 @@ class SPSA(ConfigurableMixin):
         # compute the perturbation vector and w_minus
         perturbation = []
         for p in mod.parameters():
-            pert = self._generate_perturbation(p.shape)
+            pert = self._generate_perturbation(p.shape, device=p.device)
             perturbation.append(pert)
             p.data -= pert*self.c
 
