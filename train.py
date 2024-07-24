@@ -26,6 +26,7 @@ from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP, DRTPFast
 from binary_nn.algorithms.hsic import HSIC
 from binary_nn.algorithms.local_search import LS
+from binary_nn.algorithms.pepita import Pepita
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.algorithms.spsa_h import SPSAH
 from binary_nn.datasets.imagenette import load_imagenette
@@ -159,6 +160,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
         return algo(model_config["output_layer"], num_classes, init=args.bw_init)
     elif algo_name == "hsic":
         return HSIC(num_classes, gamma=args.hsic_gamma)
+    elif algo_name == "pepita":
+        return Pepita(num_classes, model_config["output_layer"])
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":
