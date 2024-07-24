@@ -57,7 +57,7 @@ def main():
             history = history[[col for col in cols if col in history.columns]]
 
         for col, val in summary.items():
-            if col is not None and col not in cols:  # don't iterate on columns we won't save anyways
+            if col is not None and cols is not None and col not in cols:  # don't iterate on columns we won't save anyways
                 continue
             curval = None
             if col in history.columns:
