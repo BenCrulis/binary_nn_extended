@@ -139,5 +139,6 @@ class Biprop(ConfigurableMixin):
                 if mod.bias is not None:
                     mod.bias.requires_grad = False
                 set_seeded_random_weights(mod, binarize=False)
-                register_parametrization(mod, "weight", MaskedWeights(mod.weight.shape, 0.2, device=w.device))
+                register_parametrization(mod, "weight",
+                                         MaskedWeights(mod.weight.shape, self.pruning_rate, device=w.device))
 
