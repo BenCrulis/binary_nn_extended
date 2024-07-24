@@ -8,5 +8,5 @@ class WandbLogger(Logger):
         wandb.init(*args, **kwargs)
 
     def log(self, logs, step=None):
-        wandb.log(logs, step=step)
+        wandb.log(logs, step=step, commit=False)
 
