@@ -157,6 +157,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
 
 def compute_run_name(args):
     name = f"{args.model}-{args.method}"
+    if args.method == "spsa" or args.method == "spsah" and args.opt != "SGD":
+        name += f"-{args.opt}"
     if args.binary_weights and args.binary_act:
         name += "-binary"
     elif args.binary_weights:

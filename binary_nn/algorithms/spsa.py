@@ -13,14 +13,16 @@ from utils.configuration import ConfigurableMixin
 
 
 class SPSA(ConfigurableMixin):
-    def __init__(self, c=1e-3, distribution="gaussian", modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d)):
+    def __init__(self, c=1e-3, distribution="gaussian", modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d),
+                 exclude_normalization_layers=True):
         super().__init__()
         self.c = c
         self.modules_to_hook = modules_to_hook
         self.distribution = distribution
+        self.exclude_norm = exclude_normalization_layers
 
     def config(self):
-        return {"SPSA distribution": self.distribution}
+        return {"SPSA distribution": self.distribution, "SPSA exclude normalization layers": self.exclude_norm}
 
     def _generate_perturbation(self, shape, device=None):
         if self.distribution == "rademacher":
@@ -41,7 +43,9 @@ class SPSA(ConfigurableMixin):
         candidate_modules = []
 
         for module in model.modules():
-            if len(list(module.parameters(recurse=False))) > 0 and not isinstance(module, ParametrizationList):
+            is_norm = isinstance(module, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.LayerNorm, nn.GroupNorm))
+            if len(list(module.parameters(recurse=False))) > 0 and not isinstance(module, ParametrizationList) and\
+               (not is_norm or not self.exclude_norm):
                 candidate_modules.append(module)
 
         i = torch.randint(0, len(candidate_modules), (1,)).item()
