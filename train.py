@@ -180,13 +180,13 @@ def main():
                                                  device=device)):
         print(f"epoch {epoch}")
         # training loop
-        for i, l, x, y, y_pred in tqdm(epoch_iterator):
+        for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
             i += 1
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
             logger.log({
                 "epoch": epoch,
                 "train/batch loss": l.detach().cpu().item(),
-            }, step=i)
+            }, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
@@ -198,7 +198,7 @@ def main():
         eval_log = {}
         for metric_name, metric in metrics.items():
             eval_log[f"validation/{metric_name}"] = metric.compute().cpu()
-        logger.log(eval_log, step=i)
+        logger.log(eval_log, step=i, commit=True)
 
         print("end of eval")
 
