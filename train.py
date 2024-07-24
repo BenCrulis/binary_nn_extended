@@ -20,6 +20,7 @@ from mlp_mixer_pytorch import MLPMixer
 from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP
 from binary_nn.algorithms.local_search import LS
+from binary_nn.algorithms.spsa import SPSA
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
@@ -113,6 +114,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
         return DRTP(model_config["output_layer"], num_classes)
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
+    elif algo_name == "spsa":
+        return SPSA(args.mut_prob)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 

@@ -23,7 +23,8 @@ def apply_binarization_parametrization(model: nn.Module, spared=None, apply_to_b
 def clip_weights_for_binary_layers(model: nn.Module, apply_to_bias=False):
     for mod in model.modules():
         if isinstance(mod, (nn.Linear, nn.Conv2d, nn.Conv1d, nn.Conv3d)):
-            if hasattr(mod, "parametrizations") and any(isinstance(x, Sign) for x in mod.parametrizations["weight"]):
+            if hasattr(mod, "parametrizations") \
+                    and any(isinstance(x, (Sign, SignUnsat)) for x in mod.parametrizations["weight"]):
                 w = mod.parametrizations.weight.original
                 w.data.clip_(-1.0, 1.0)
                 if apply_to_bias and mod.bias is not None:
