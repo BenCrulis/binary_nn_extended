@@ -64,6 +64,9 @@ def parse_args():
     ap.add_argument("--mut-prob", type=float, default=0.1, help="mutation probability")
     ap.add_argument("--ls-accuracy", action="store_true", help="override loss, use accuracy as the fitness function")
 
+    # SPSA
+    ap.add_argument("--spsa-c", type=float, default=1e-3, help="c parameter of SPSA")
+
     # checkpoint related
     ap.add_argument("--save", action="store_true", help="save checkpoints")
     ap.add_argument("--autosave", action="store_true", help="imply --save, auto save at the end of every epoch")
@@ -115,7 +118,7 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":
-        return SPSA(args.mut_prob)
+        return SPSA(args.spsa_c)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
