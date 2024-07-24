@@ -32,7 +32,7 @@ class LS(ConfigurableMixin):
         l1 = loss_fn(y_pred1, y)
 
         for p in mod.parameters():
-            mask = torch.randn(p.shape) < self.prob
+            mask = torch.rand(p.shape) < self.prob
             p.data[mask] *= -1
 
         y_pred2 = model(x)
