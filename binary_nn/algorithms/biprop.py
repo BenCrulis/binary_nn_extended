@@ -135,8 +135,9 @@ class Biprop(ConfigurableMixin):
     def _init_model(self, model: nn.Module):
         for mod in model.modules():
             if isinstance(mod, self.modules_to_hook):
+                w = mod.weight
                 if mod.bias is not None:
                     mod.bias.requires_grad = False
                 set_seeded_random_weights(mod, binarize=False)
-                register_parametrization(mod, "weight", MaskedWeights(mod.weight.shape, 0.2))
+                register_parametrization(mod, "weight", MaskedWeights(mod.weight.shape, 0.2).to(w.device))
 
