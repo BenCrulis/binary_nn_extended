@@ -21,7 +21,8 @@ from binary_nn.algorithms.drtp import DRTP
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
-from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign
+from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign, \
+    clip_weights_for_binary_layers
 from binary_nn.models.common.utils import count_parameters
 from binary_nn.training.training import train
 from binary_nn.models import autoencoders as ae
@@ -206,6 +207,10 @@ def main():
         # training loop
         for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
             i += 1
+
+            if binary_weights:
+                clip_weights_for_binary_layers(model)
+
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
             logger.log({
                 "epoch": epoch,
