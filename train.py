@@ -296,7 +296,7 @@ def main():
     }
 
     gradnorm_metric = GradNorm(model, sample).to(device)
-    saturation_metric = Saturation(model, threshold=metric_saturation_threshold).to(device)
+    saturation_metric = Saturation(model, threshold=metric_saturation_threshold)
 
     model.to(device)
 
@@ -306,7 +306,7 @@ def main():
                                                  device=device, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
         gradnorm_metric.reset()
-        saturation_metric.reset()
+        # saturation_metric.reset()
         # training loop
         for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
             i += 1
