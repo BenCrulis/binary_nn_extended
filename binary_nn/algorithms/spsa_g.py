@@ -21,21 +21,45 @@ class ExpendableTensor(torch.Tensor):
 
 
 class SPSAG(ConfigurableMixin):
-    def __init__(self, n_classes, c=1e-3, perturbation="hebbian", modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d)):
+    def __init__(self, n_classes, c=1e-3, perturbation="drtp", modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d),
+                 init="normal"):
         super().__init__()
         self.n_classes = n_classes
         self.c = c
         self.modules_to_hook = modules_to_hook
         self.perturbation = perturbation
+        self.init = init
 
     def config(self):
         return {"spsa-g-pert": self.perturbation}
 
+    def _init_mat(self, mat):
+        if self.init == "normal":
+            nn.init.normal_(mat)
+        elif self.init == "kaiming_uniform":
+            nn.init.kaiming_uniform_(mat, mode="fan_in", nonlinearity="linear")
+        elif self.init == "kaiming_normal":
+            nn.init.kaiming_normal_(mat, mode="fan_in", nonlinearity="linear")
+        else:
+            raise ValueError(f"unknown initialization: {self.init}")
+
     def _drtp_get_mat(self, mod, x, y):
+        device = x.device
+        n_outputs = y.shape[-1]
         if hasattr(mod, "drtp_backward"):
             return mod.drtp_backward
-        if isinstance(mod, nn.Conv1d):
-            pass
+        if isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+            channel_dim = x.shape[1]
+            backward_mat = torch.empty((n_outputs, channel_dim), device=device)
+            self._init_mat(backward_mat)
+            mod.register_buffer("drtp_backward", backward_mat, persistent=True)
+        elif isinstance(mod, nn.Linear):
+            channel_dim = x.shape[-1]
+            backward_mat = torch.empty((n_outputs, channel_dim), device=device)
+            self._init_mat(backward_mat)
+            mod.register_buffer("drtp_backward", backward_mat, persistent=True)
+
+        return mod.drtp_backward
 
     def _generate_perturbation(self, mod, x, y):
         device = x.device
@@ -43,15 +67,25 @@ class SPSAG(ConfigurableMixin):
             eye = torch.eye(self.n_classes, device=device)
             signal = eye[y]
             signal -= signal.mean(1)[:, None]
-            bw = self._drtp_get_mat(mod, x, y)
-            pert = signal @ bw
+            if x.shape == signal.shape:
+                pert = signal
+            else:
+                bw = self._drtp_get_mat(mod, x, signal)
+                pert = signal @ bw
+                if isinstance(mod, nn.Linear):
+                    pert = pert.view((len(x), *[1 for x in range(len(x.shape) - 2)], -1))
+                elif isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+                    pert = pert.view((len(x), -1, *[1 for x in range(len(x.shape) - 2)]))
+                pert = pert.expand(x.shape)
+            pass
         elif self.perturbation == "hebbian":
             mean = x.mean([x for x in range(1, len(x.shape))])
-            cx = x - mean.view((-1, *[1 for x in x.shape[1:]])).expand(x.shape)
+            cx = x
+            # cx = x - mean.view((-1, *[1 for x in x.shape[1:]])).expand(x.shape)
             pert = cx
         else:
             raise ValueError(f"unknown perturbation type: {self.perturbation}")
-        pert /= torch.linalg.vector_norm(pert, keepdim=True)
+        pert = pert / torch.linalg.vector_norm(pert, keepdim=True)
         return pert
 
     @torch.no_grad()

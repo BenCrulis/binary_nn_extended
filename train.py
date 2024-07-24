@@ -108,6 +108,7 @@ def parse_args():
 
     # SPSA
     ap.add_argument("--spsa-c", type=float, default=1e-3, help="c parameter of SPSA")
+    ap.add_argument("--spsa-g-pert", type=str, default="drtp", help="type of perturbation for guided SPSA")
 
     # checkpoint related
     ap.add_argument("--save", action="store_true", help="save checkpoints")
@@ -173,7 +174,7 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "spsah":
         return SPSAH(args.spsa_c)
     elif algo_name == "spsag":
-        return SPSAG(num_classes, args.spsa_c)
+        return SPSAG(num_classes, args.spsa_c, args.spsa_g_pert)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
