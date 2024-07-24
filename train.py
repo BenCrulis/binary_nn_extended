@@ -44,6 +44,7 @@ def parse_args():
     ap.add_argument("--model", default="MobileNetV2")
     ap.add_argument("--binary-weights", action="store_true")
     ap.add_argument("--binary-act", action="store_true")
+    ap.add_argument("--unsat", action="store_true")
 
     # training algorithm
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
@@ -140,6 +141,7 @@ def main():
     epochs = args.epochs
     binary_weights = args.binary_weights
     binary_act = args.binary_act
+    unsat = args.unsat
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
@@ -165,7 +167,7 @@ def main():
     model_config = config["model_config"][("ae" + model_name) if reconstruction else model_name]
 
     if binary_act:
-        replace_activations_to_sign(model)
+        replace_activations_to_sign(model, unsaturating=unsat)
     if binary_weights:
         apply_binarization_parametrization(model, model_config["prevent_binarization"])
 
@@ -186,6 +188,9 @@ def main():
         "seed": seed,
         "reconstruction": reconstruction,
         "fraction train": train_fraction,
+        "binary activations": binary_act,
+        "saturating binary activation": not unsat,
+        "binary weights": binary_weights,
         "save": save,
         "device": str(device),
     })
