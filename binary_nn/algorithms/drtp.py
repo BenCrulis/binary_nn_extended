@@ -142,7 +142,7 @@ class DRTPFast(ConfigurableMixin):
                 handle = module.register_forward_pre_hook(signal_hook)
                 handles.append(handle)
             if isinstance(module, self.modules_to_detach):
-                handle = module.register_forward_hook(detach_output_hook)
+                handle = module.register_forward_pre_hook(signal_hook)
                 handles.append(handle)
 
         opt.zero_grad()

@@ -4,6 +4,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torchvision.models.mobilenetv2 import InvertedResidual
 
+from binary_nn.models.common.binary.modules import Sign
 from utils.configuration import ConfigurableMixin
 
 from binary_nn.utils import hsic
@@ -31,17 +32,13 @@ class HSIC(ConfigurableMixin):
         signal = eye[y]
         signal -= signal.mean(1)[:, None]
 
-        def detach_output_hook(mod, input, output):
-            output = output[0] if isinstance(output, tuple) else output
-            return output.detach()
-
-        def signal_hook(mod, input):
-            input = input[0] if isinstance(input, tuple) else input
-            if not input.requires_grad:
+        def signal_hook(mod, tensor):
+            tensor = tensor[0] if isinstance(tensor, tuple) else tensor
+            if not tensor.requires_grad:
                 return
-            l = hsic.estimate_hsic_zy_objective(input.view((len(input), -1)), signal, self.z_kernel, self.y_kernel, self.gamma)
+            l = hsic.estimate_hsic_zy_objective(tensor.view((len(tensor), -1)), signal, self.z_kernel, self.y_kernel, self.gamma)
             l.backward()
-            return input.detach()
+            return tensor.detach()
 
         handles = []
         for module in model.modules():
@@ -49,7 +46,7 @@ class HSIC(ConfigurableMixin):
                 handle = module.register_forward_pre_hook(signal_hook)
                 handles.append(handle)
             if isinstance(module, self.modules_to_detach):
-                handle = module.register_forward_hook(detach_output_hook)
+                handle = module.register_forward_pre_hook(signal_hook)
                 handles.append(handle)
 
         opt.zero_grad()
