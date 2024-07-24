@@ -19,7 +19,7 @@ metric:
   goal: maximize
 parameters:
   model:
-    values: [MLPMixer, vgg16, vgg19, MobileNetV2]
+    values: [MLPMixer, vgg19, MobileNetV2]
   lr:
     values: [1e-3, 1e-4, 1e-5]
   binary-act:
