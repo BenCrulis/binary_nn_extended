@@ -12,13 +12,17 @@ from utils.configuration import ConfigurableMixin
 
 
 class SPSA(ConfigurableMixin):
-    def __init__(self, c=1e-3, modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d)):
+    def __init__(self, c=1e-3, distribution="gaussian", modules_to_hook=(nn.Linear, nn.Conv1d, nn.Conv2d)):
         super().__init__()
         self.c = c
         self.modules_to_hook = modules_to_hook
+        self.distribution = distribution
 
     def _generate_perturbation(self, shape, device=None):
-        return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(-1) * 2 - 1
+        if self.distribution == "rademacher":
+            return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(-1) * 2 - 1
+        elif self.distribution == "gaussian":
+            return torch.randn(shape, device=device)
 
     @torch.no_grad()
     def __call__(self, model, x, y, opt: Optimizer, loss_fn):
