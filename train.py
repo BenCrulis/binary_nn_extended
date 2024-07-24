@@ -326,7 +326,7 @@ def main():
             sat = saturation_metric()
             saturation_metric.reset_buffers()
 
-            if i % 50 == 0:
+            if iteration == 0:
                 train_log.update({
                     "train/grad norms": grad_norms,
                     "train/saturation": sat,
