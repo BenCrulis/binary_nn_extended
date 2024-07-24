@@ -58,16 +58,19 @@ def train(model: nn.Module,
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    epoch_iter = iter(training_epoch(model, dataloader, opt, loss_fn, reconstruction, train_callback=train_callback))
-
     class EpochIterator():
+        def __init__(self, iter):
+            self.iter = iter
+
         def __len__(self):
             return len(dataloader)
 
         def __iter__(self):
-            return epoch_iter
+            return self.iter
 
     # for epoch in range(num_epochs):
     #     yield training_epoch(model, dataloader, opt, loss_fn, train_callback=train_callback)
     for epoch in range(num_epochs):
-        yield EpochIterator()
+        epoch_iter = iter(
+            training_epoch(model, dataloader, opt, loss_fn, reconstruction, train_callback=train_callback))
+        yield EpochIterator(epoch_iter)
