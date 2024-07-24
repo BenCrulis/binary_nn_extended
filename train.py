@@ -1,5 +1,6 @@
 import os
 import argparse
+import time
 
 import yaml
 
@@ -21,7 +22,7 @@ from torchvision.transforms import ToTensor, Compose, Normalize
 from mlp_mixer_pytorch import MLPMixer
 
 from binary_nn.algorithms.dfa import DFA
-from binary_nn.algorithms.drtp import DRTP
+from binary_nn.algorithms.drtp import DRTP, DRTPFast
 from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.datasets.imagenette import load_imagenette
@@ -67,6 +68,7 @@ def parse_args():
 
     # training algorithm
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
+    ap.add_argument("--slow-drtp", action="store_true", help="use the slow variant of DRTP")
 
     # learning
     ap.add_argument("--opt", type=str, default="Adam", help="optimizer (default to Adam")
@@ -140,7 +142,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "dfa":
         return DFA(model_config["output_layer"])
     elif algo_name == "drtp":
-        return DRTP(model_config["output_layer"], num_classes)
+        algo = DRTP if args.slow_drtp else DRTPFast
+        return algo(model_config["output_layer"], num_classes)
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":
@@ -286,7 +289,8 @@ def main():
             "mutation-rate": args.mut_prob,
             "save": save,
             "device": str(device),
-            "metric saturation threshold": metric_saturation_threshold
+            "metric saturation threshold": metric_saturation_threshold,
+            **(algo.config() if hasattr(algo, "config") else {}),
         })
 
     metrics = {
@@ -306,6 +310,7 @@ def main():
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
                                                  device=device, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
+        time_before = time.time()
         gradnorm_metric.reset()
         # saturation_metric.reset()
         # training loop
@@ -333,6 +338,10 @@ def main():
                     "train/mean gradient": wandb_table_layers(grad_norms, "mean"),
                     "train/average saturation": wandb_table_layers(sat, "mean"),
                 })
+
+            if iteration == len(epoch_iterator) - 1:
+                time_epoch = time.time() - time_before
+                train_log["time epoch"] = time_epoch
 
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
             if os.environ.get("WANDB", "") == "1":
