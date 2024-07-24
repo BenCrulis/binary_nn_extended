@@ -32,6 +32,7 @@ from binary_nn.evaluating.classification import eval_classification, eval_classi
 from binary_nn.evaluating.metrics.common.ordered_list import ordered_list, wandb_table_layers
 from binary_nn.evaluating.metrics.gradnorm import GradNorm
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
+from binary_nn.evaluating.metrics.meanabsgrad import MeanAbsGrad
 from binary_nn.evaluating.metrics.saturation import Saturation
 from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign, \
     clip_weights_for_binary_layers, replace_activations_to_bireal
@@ -328,6 +329,7 @@ def main():
     }
 
     gradnorm_metric = GradNorm(model, sample).to(device)
+    meanabsgrad_metric = MeanAbsGrad(model, sample).to(device)
     saturation_metric = Saturation(model, threshold=metric_saturation_threshold)
 
     model.to(device)
@@ -354,13 +356,14 @@ def main():
             if binary_weights:
                 clip_weights_for_binary_layers(model)
 
-            grad_norms = gradnorm_metric()
-            sat = saturation_metric()
-            saturation_metric.reset_buffers()
-
             if iteration == 0:
+                grad_norms = gradnorm_metric()
+                mean_abs_grads = meanabsgrad_metric()
+                sat = saturation_metric()
+                saturation_metric.reset_buffers()
                 train_log.update({
-                    "train/grad norms": grad_norms,
+                    "train/grad norms": wandb_table_layers(mean_abs_grads, "mean"),
+                    "train/mean abs grad": mean_abs_grads,
                     "train/saturation": sat,
                     "train/mean gradient": wandb_table_layers(grad_norms, "mean"),
                     "train/average saturation": wandb_table_layers(sat, "mean"),
