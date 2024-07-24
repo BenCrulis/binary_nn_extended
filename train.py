@@ -25,6 +25,7 @@ from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP, DRTPFast
 from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
+from binary_nn.algorithms.spsa_h import SPSAH
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.common.ordered_list import ordered_list, wandb_table_layers
@@ -148,6 +149,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":
         return SPSA(args.spsa_c)
+    elif algo_name == "spsah":
+        return SPSAH(args.spsa_c)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
