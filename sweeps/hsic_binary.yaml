@@ -24,3 +24,5 @@ parameters:
     values: [MLPMixer, vgg19, MobileNetV2]
   lr:
     values: [1e-3, 1e-4, 1e-5]
+  hsic-gamma:
+    values: [2.0, 20.0, 200.0]
