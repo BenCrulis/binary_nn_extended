@@ -259,7 +259,7 @@ def main():
         model = load_model(model_name, num_classes, args)
 
     if args.biprop is not None:
-        Biprop(model, args.biprop, device=device)
+        Biprop(model, args.biprop)
 
     n_params = count_parameters(model)
     print(f"using model {model_name} with {n_params}")

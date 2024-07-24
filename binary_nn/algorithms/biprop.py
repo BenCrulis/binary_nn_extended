@@ -50,10 +50,10 @@ def compute_bound(shape):
 
 
 class SeededRandomWeights(nn.Module):
-    def __init__(self, shape, binarize=False, seed=None, device=None, bound=None):
+    def __init__(self, shape, binarize=False, seed=None, bound=None, device=None):
         super().__init__()
         self.shape = shape
-        self.device = device
+        self.register_buffer("_dummy", torch.empty(0, device=device))
         self.binarize = binarize
         if seed is None:
             seed = torch.randint(2**31, size=(1,)).item()
@@ -63,13 +63,9 @@ class SeededRandomWeights(nn.Module):
     def get_float_weights(self):
         state = torch.get_rng_state()
         torch.manual_seed(self.seed)
-        new_w = torch.rand(size=self.shape, device=self.device) * (2.0 * self.bound) - self.bound
+        new_w = torch.rand(size=self.shape, device=self._dummy.device) * (2.0 * self.bound) - self.bound
         torch.set_rng_state(state)
         return new_w
-
-    def to(self, *args, device=None, **kwargs):
-        self.device = device
-        return super().to(*args, **kwargs)
 
     def forward(self, w):
         new_w = self.get_float_weights()
@@ -100,12 +96,12 @@ class MaskedWeights(nn.Module):
         return quantnet * torch.sign(w)
 
 
-def set_seeded_random_weights(module: nn.Module, binarize=False, device=None):
+def set_seeded_random_weights(module: nn.Module, binarize=False):
     parametrizations = [None, None]
     if hasattr(module, "weight"):
         if module.weight is not None:
             w = module.weight
-            parametrization = SeededRandomWeights(module.weight.shape, binarize=binarize, device=device)
+            parametrization = SeededRandomWeights(module.weight.shape, binarize=binarize, device=w.device)
             register_parametrization(module, "weight", parametrization)
             parametrizations[0] = parametrization
             module.parametrizations["weight"].original = None
@@ -113,7 +109,7 @@ def set_seeded_random_weights(module: nn.Module, binarize=False, device=None):
         if module.bias is not None:
             fan_in, _ = nn.init._calculate_fan_in_and_fan_out(w)
             bound = 1 / math.sqrt(fan_in)
-            parametrization = SeededRandomWeights(module.bias.shape, binarize=False, device=device,
+            parametrization = SeededRandomWeights(module.bias.shape, binarize=False, device=w.device,
                                                   bound=bound)
             register_parametrization(module, "bias", parametrization)
             parametrizations[1] = parametrization
@@ -129,11 +125,10 @@ def set_scores(module: nn.Module):
 
 
 class Biprop(ConfigurableMixin):
-    def __init__(self, model, pruning_rate, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), device=None):
+    def __init__(self, model, pruning_rate, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d)):
         super().__init__()
         self.modules_to_hook = modules_to_hook
         self.pruning_rate = pruning_rate
-        self.device = device
         self._init_model(model)
 
     def config(self):
@@ -145,7 +140,7 @@ class Biprop(ConfigurableMixin):
                 w = mod.weight
                 if mod.bias is not None:
                     mod.bias.requires_grad = False
-                set_seeded_random_weights(mod, binarize=False, device=self.device)
+                set_seeded_random_weights(mod, binarize=False)
                 register_parametrization(mod, "weight",
-                                         MaskedWeights(mod.weight.shape, self.pruning_rate, device=self.device))
+                                         MaskedWeights(mod.weight.shape, self.pruning_rate, device=w.device))
 
