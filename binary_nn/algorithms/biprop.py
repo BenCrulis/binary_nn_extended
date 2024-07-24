@@ -100,12 +100,12 @@ class MaskedWeights(nn.Module):
         return quantnet * torch.sign(w)
 
 
-def set_seeded_random_weights(module: nn.Module, binarize=False):
+def set_seeded_random_weights(module: nn.Module, binarize=False, device=None):
     parametrizations = [None, None]
     if hasattr(module, "weight"):
         if module.weight is not None:
             w = module.weight
-            parametrization = SeededRandomWeights(module.weight.shape, binarize=binarize, device=w.device)
+            parametrization = SeededRandomWeights(module.weight.shape, binarize=binarize, device=device)
             register_parametrization(module, "weight", parametrization)
             parametrizations[0] = parametrization
             module.parametrizations["weight"].original = None
@@ -113,7 +113,7 @@ def set_seeded_random_weights(module: nn.Module, binarize=False):
         if module.bias is not None:
             fan_in, _ = nn.init._calculate_fan_in_and_fan_out(w)
             bound = 1 / math.sqrt(fan_in)
-            parametrization = SeededRandomWeights(module.bias.shape, binarize=False, device=w.device,
+            parametrization = SeededRandomWeights(module.bias.shape, binarize=False, device=device,
                                                   bound=bound)
             register_parametrization(module, "bias", parametrization)
             parametrizations[1] = parametrization
@@ -129,10 +129,11 @@ def set_scores(module: nn.Module):
 
 
 class Biprop(ConfigurableMixin):
-    def __init__(self, model, pruning_rate, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d)):
+    def __init__(self, model, pruning_rate, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), device=None):
         super().__init__()
         self.modules_to_hook = modules_to_hook
         self.pruning_rate = pruning_rate
+        self.device = device
         self._init_model(model)
 
     def config(self):
@@ -144,7 +145,7 @@ class Biprop(ConfigurableMixin):
                 w = mod.weight
                 if mod.bias is not None:
                     mod.bias.requires_grad = False
-                set_seeded_random_weights(mod, binarize=False)
+                set_seeded_random_weights(mod, binarize=False, device=self.device)
                 register_parametrization(mod, "weight",
-                                         MaskedWeights(mod.weight.shape, self.pruning_rate, device=w.device))
+                                         MaskedWeights(mod.weight.shape, self.pruning_rate, device=self.device))
 
