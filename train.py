@@ -102,6 +102,17 @@ def load_algorithm(algo_name, model_config, num_classes):
         raise ValueError(f"unknown algorithm: {algo_name}")
 
 
+def compute_run_name(args):
+    name = f"{args.model}-{args.method}"
+    if args.binary_weights and args.binary_act:
+        name += "-binary"
+    elif args.binary_weights:
+        name += "-binary-weights"
+    elif args.binary_act:
+        name += "-binary-act"
+    return name
+
+
 def main():
     args = parse_args()
 
@@ -163,7 +174,20 @@ def main():
         loss_fn = torch.nn.functional.cross_entropy
     opt = "Adam"
 
-    logger = WandbLogger(project="binary nn extended")
+    run_name = compute_run_name(args)
+    logger = WandbLogger(project="binary nn extended", name=run_name, config={
+        "model": model_name,
+        "optimizer": opt,
+        "algorithm": algo_name,
+        "lr": lr,
+        "bs": bs,
+        "total epochs": epochs,
+        "seed": seed,
+        "reconstruction": reconstruction,
+        "fraction train": train_fraction,
+        "save": save,
+        "device": str(device),
+    })
 
     metrics = {
         "loss": LossMetric(loss_fn).to(device),
