@@ -11,10 +11,12 @@ def apply_binarization_parametrization(model: nn.Module, spared=None, apply_to_b
         spared = ()
     elif isinstance(spared, str):
         spared = [spared]
-    spared = [model.get_submodule(x) if isinstance(x, str) else x for x in spared]
+    spared = [model.get_submodule(x) if isinstance(x, str) else
+              model[x] if isinstance(x, int) else x
+              for x in spared]
 
     for mod in model.modules():
-        if isinstance(mod, (nn.Linear, nn.Conv2d)) and mod not in spared:
+        if isinstance(mod, (nn.Linear, nn.Conv1d, nn.Conv2d)) and mod not in spared:
             register_parametrization(mod, "weight", Sign())
             if apply_to_bias:
                 register_parametrization(mod, "bias", Sign())

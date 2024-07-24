@@ -18,10 +18,10 @@ model_config:
       - classifier.6
 
   MLPMixer:
-    output_layer: 16
+    output_layer: -1
     prevent_binarization:
       - 1
-      - 16
+      - -1
 
   aevgg16:
     output_layer: decoder.conv5.2 DecoderLayer.layer.2
