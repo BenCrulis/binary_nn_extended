@@ -319,6 +319,8 @@ def main():
             "save": save,
             "device": str(device),
             "metric saturation threshold": metric_saturation_threshold,
+            "mlp-mixer-dim": args.mlp_mixer_dim,
+            "mlp-mixer-layers": args.mlp_mixer_layers,
             **(algo.config() if hasattr(algo, "config") else {}),
         }, tags=args.tags)
 
