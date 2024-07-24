@@ -1,0 +1,27 @@
+program: binary_nn/train.py
+method: grid
+command:
+  - ./venv/bin/python3
+  - train.py
+  - --dogs
+  - --augment
+  - --epochs
+  - 80
+  - --bs
+  - 128
+  - --wd
+  - 1e-5
+  - --tags
+  - sweepDogs
+  - ${args_no_boolean_flags}
+
+metric:
+  name: validation/accuracy
+  goal: maximize
+parameters:
+  method:
+    values: [bp, dfa, drtp]
+  model:
+    values: [MLPMixer, vgg19, MobileNetV2]
+  lr:
+    values: [1e-3, 1e-4, 1e-5]
