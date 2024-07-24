@@ -7,12 +7,13 @@ from tqdm import tqdm
 
 
 def train_iteration(model, x, y, opt: Optimizer, loss_fn):
-    model.train()
-    y_pred = model(x)
-    l = loss_fn(y_pred, y)
-    opt.zero_grad()
-    l.backward()
-    opt.step()
+    with torch.enable_grad():
+        model.train()
+        y_pred = model(x)
+        l = loss_fn(y_pred, y)
+        opt.zero_grad()
+        l.backward()
+        opt.step()
     return l, y_pred
 
 

@@ -131,6 +131,9 @@ def main():
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
+    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    print("using device:", device)
+
     num_classes, ds, test_ds = load_imagenette(config, augment=False)
 
     algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes)
@@ -163,15 +166,18 @@ def main():
     logger = WandbLogger(project="binary nn extended")
 
     metrics = {
-        "loss": LossMetric(loss_fn),
-        "accuracy": Accuracy("multiclass", num_classes=num_classes),
-        "precision": torchmetrics.Precision("multiclass", num_classes=num_classes),
-        "recall": torchmetrics.Recall("multiclass", num_classes=num_classes)
+        "loss": LossMetric(loss_fn).to(device),
+        "accuracy": Accuracy("multiclass", num_classes=num_classes).to(device),
+        "precision": torchmetrics.Precision("multiclass", num_classes=num_classes).to(device),
+        "recall": torchmetrics.Recall("multiclass", num_classes=num_classes).to(device)
     }
+
+    model.to(device)
 
     i = 0
     for epoch, epoch_iterator in enumerate(train(model, train_ds, opt, loss_fn, reconstruction=reconstruction,
-                                                 lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo)):
+                                                 lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
+                                                 device=device)):
         print(f"epoch {epoch}")
         # training loop
         for i, l, x, y, y_pred in tqdm(epoch_iterator):
@@ -179,19 +185,19 @@ def main():
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
             logger.log({
                 "epoch": epoch,
-                "train/batch loss": l,
+                "train/batch loss": l.detach().cpu().item(),
             }, step=i)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
             metric.reset()
-        pbar = tqdm(eval_classification_iterator(model, validation_ds, metrics, batch_size=bs))
+        pbar = tqdm(eval_classification_iterator(model, validation_ds, metrics, batch_size=bs, device=device))
         for r in pbar:
             pbar.set_description(f"{r}")
 
         eval_log = {}
         for metric_name, metric in metrics.items():
-            eval_log[f"validation/{metric_name}"] = metric.compute()
+            eval_log[f"validation/{metric_name}"] = metric.compute().cpu()
         logger.log(eval_log, step=i)
 
         print("end of eval")
