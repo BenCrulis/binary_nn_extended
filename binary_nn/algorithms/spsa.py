@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import torch
 from torch import nn
+from torch.nn.utils.parametrize import ParametrizationList
 from torch.optim import Optimizer
 
 from torchmetrics.functional import accuracy
@@ -40,7 +41,7 @@ class SPSA(ConfigurableMixin):
         candidate_modules = []
 
         for module in model.modules():
-            if isinstance(module, self.modules_to_hook):
+            if len(list(module.parameters(recurse=False))) > 0 and not isinstance(module, ParametrizationList):
                 candidate_modules.append(module)
 
         i = torch.randint(0, len(candidate_modules), (1,)).item()
