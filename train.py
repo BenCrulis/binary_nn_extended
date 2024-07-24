@@ -19,6 +19,7 @@ from mlp_mixer_pytorch import MLPMixer
 
 from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP
+from binary_nn.algorithms.local_search import LS
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
@@ -56,6 +57,10 @@ def parse_args():
     ap.add_argument("--wd", type=float, default=0.0, help="weight decay")
     ap.add_argument("--bs", type=int, default=10, help="batch size")
     ap.add_argument("--epochs", type=int, default=80)
+
+    # algorithm specific options
+    # Local search
+    ap.add_argument("--mut-prob", type=float, default=0.1, help="mutation probability")
 
     # checkpoint related
     ap.add_argument("--save", action="store_true", help="save checkpoints")
@@ -98,13 +103,15 @@ def load_reconstruction_model(model_name):
     return model
 
 
-def load_algorithm(algo_name, model_config, num_classes):
+def load_algorithm(algo_name, model_config, num_classes, args):
     if algo_name == "bp":
         return None
     elif algo_name == "dfa":
         return DFA(model_config["output_layer"])
     elif algo_name == "drtp":
         return DRTP(model_config["output_layer"], num_classes)
+    elif algo_name == "ls":
+        return LS(args.mut_prob)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
@@ -157,7 +164,7 @@ def main():
 
     num_classes, ds, test_ds = load_imagenette(config, augment=augment)
 
-    algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes)
+    algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes, args)
 
     train_ds, validation_ds = random_split(ds, [train_fraction, 1.0-train_fraction])
 

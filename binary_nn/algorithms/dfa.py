@@ -14,7 +14,7 @@ def compute_kernel_size_and_stride(global_error_shape, local_shape):
 
 
 class DFA(ConfigurableMixin):
-    def __init__(self, output_layer, modules_to_hook=(nn.Linear, nn.Conv2d)):
+    def __init__(self, output_layer, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d)):
         super().__init__()
         self.output_layer = output_layer
         self.modules_to_hook = modules_to_hook
