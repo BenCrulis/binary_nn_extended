@@ -1,9 +1,13 @@
 import argparse
 from pathlib import Path
 
+import tempfile
+
 import pandas as pd
 
 import wandb
+
+import json
 
 from tqdm import tqdm
 
@@ -45,6 +49,9 @@ def main():
 
     df = None
 
+    tempdir = Path(tempfile.gettempdir())
+    metadata_path = tempdir / "wandb-metadata.json"
+
     dfs = []
     for run in tqdm(runs):
         if tag is not None and tag not in run.tags:
@@ -56,6 +63,11 @@ def main():
             history[col] = val
 
         summary = run.summary
+        systemMetrics = run.systemMetrics
+        metadata_file = run.file("wandb-metadata.json")
+        metadata_file.download(root=tempdir, replace=True)
+        with open(metadata_path) as f:
+            metadata = json.load(f)
 
         if cols is not None:
             history = history[[col for col in cols if col in history.columns]]
@@ -70,9 +82,26 @@ def main():
                 history[col] = None
             if curval is None or curval == "" or (isinstance(curval, float) and math.isnan(curval)):
                 history.iloc[0, history.columns.get_loc(col)] = val if isinstance(val, (float, int, str, bool)) else str(val)
+
+        gpu_name = metadata["gpu"]
         history.insert(loc=0, column="id", value=run.id)
+        history.insert(loc=1, column="gpu", value=gpu_name)
+        history.insert(loc=1, column="host", value=metadata["host"])
+
+        gpu_total_mem = [x["memory_total"] for x in metadata["gpu_devices"] if x["name"] == gpu_name][0]
+        gpu_index = 1 if "system.gpu.process.0.powerWatts" not in systemMetrics.keys() else 0
+        watts = systemMetrics[f"system.gpu.process.{gpu_index}.powerWatts"]
+        # gpu_time_access_mem_percent = systemMetrics["system.gpu.process.0.memory"]
+        gpu_mem_alloc_percent = systemMetrics[f"system.gpu.process.{gpu_index}.memoryAllocated"]
+
+        history.insert(loc=3, column="gpu_watts", value=watts)
+        history.insert(loc=3, column="gpu_mem_alloc_percent", value=gpu_mem_alloc_percent)
+        history.insert(loc=3, column="gpu_total_mem", value=gpu_total_mem)
 
         dfs.append(history)
+
+    if metadata_path.exists():
+        metadata_path.unlink()
 
     df = pd.concat(dfs)
     if filename.exists():
