@@ -11,18 +11,18 @@ from binary_nn.utils import hsic
 
 
 class HSIC(ConfigurableMixin):
-    def __init__(self, num_classes, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), gamma=2.0):
+    def __init__(self, num_classes, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), gamma=2.0, mode="biased"):
         super().__init__()
         self.n_classes = num_classes
         self.modules_to_hook = modules_to_hook
         self.z_kernel = hsic.CosineSimilarityKernel()
         self.y_kernel = hsic.CosineSimilarityKernel()
         self.gamma = gamma
-        self.mode = "biased"
+        self.mode = mode
         self.modules_to_detach = (PreNormResidual, InvertedResidual)
 
     def config(self):
-        return {"HSIC gamma": self.gamma, "HSIC mode": self.mode}
+        return {"hsic-gamma": self.gamma, "hsic-mode": self.mode}
 
     def __call__(self, model, x, y, opt: Optimizer, loss_fn):
         model.train()

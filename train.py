@@ -102,6 +102,7 @@ def parse_args():
 
     # HSIC
     ap.add_argument("--hsic-gamma", type=float, default=2.0, help="HSIC gamma value")
+    ap.add_argument("--hsic-mode", type=str, default="biased", help="HSIC mode (biased or plausible)")
 
     # PEPITA
     ap.add_argument("--pepita-gain", type=float, default=1.0, help="pepita gain for the random backward matrix scale")
@@ -164,7 +165,7 @@ def load_algorithm(algo_name, model_config, num_classes, args):
         algo = DRTP if args.slow_drtp else DRTPFast
         return algo(model_config["output_layer"], num_classes, init=args.bw_init)
     elif algo_name == "hsic":
-        return HSIC(num_classes, gamma=args.hsic_gamma)
+        return HSIC(num_classes, gamma=args.hsic_gamma, mode=args.hsic_mode)
     elif algo_name == "pepita":
         return Pepita(num_classes, model_config["output_layer"], gain=args.pepita_gain)
     elif algo_name == "ls":
