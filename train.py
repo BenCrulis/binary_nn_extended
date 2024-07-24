@@ -24,6 +24,7 @@ from mlp_mixer_pytorch import MLPMixer
 from binary_nn.algorithms.biprop import Biprop
 from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP, DRTPFast
+from binary_nn.algorithms.hsic import HSIC
 from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.algorithms.spsa_h import SPSAH
@@ -97,6 +98,9 @@ def parse_args():
     ap.add_argument("--mut-prob", type=float, default=0.1, help="mutation probability")
     ap.add_argument("--ls-accuracy", action="store_true", help="override loss, use accuracy as the fitness function")
 
+    # HSIC
+    ap.add_argument("--hsic-gamma", type=float, default=2.0, help="HSIC gamma value")
+
     # SPSA
     ap.add_argument("--spsa-c", type=float, default=1e-3, help="c parameter of SPSA")
 
@@ -153,6 +157,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "drtp":
         algo = DRTP if args.slow_drtp else DRTPFast
         return algo(model_config["output_layer"], num_classes, init=args.bw_init)
+    elif algo_name == "hsic":
+        return HSIC(num_classes, gamma=args.hsic_gamma)
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":

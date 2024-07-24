@@ -145,9 +145,9 @@ class DRTPFast(ConfigurableMixin):
                 handle = module.register_forward_pre_hook(detach_hook)
                 handles.append(handle)
 
+        opt.zero_grad()
         y_pred = model(x)
         l = loss_fn(y_pred, y)
-        opt.zero_grad()
         l.backward()
         opt.step()
 
