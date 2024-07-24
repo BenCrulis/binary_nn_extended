@@ -18,7 +18,7 @@ from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
 
 from torchvision.models.mobilenet import MobileNetV2, MobileNetV3
 from torchvision.models.vgg import vgg19, vgg19_bn, vgg16_bn
-from torchvision.transforms import ToTensor, Compose, Normalize
+from torchvision.transforms import ToTensor, Compose, Normalize, Resize
 from mlp_mixer_pytorch import MLPMixer
 
 from binary_nn.algorithms.biprop import Biprop
@@ -265,11 +265,17 @@ def main():
     elif args.cifar10:
         num_classes = 10
         ds = CIFAR10("datasets", train=True,
-                     transform=Compose([ToTensor(), Normalize((0.49139968, 0.48215841, 0.44653091),
-                                                              (0.24703223, 0.24348513, 0.26158784))]), download=True)
+                     transform=Compose([
+                         Resize(224),
+                         ToTensor(),
+                         Normalize((0.49139968, 0.48215841, 0.44653091),
+                                   (0.24703223, 0.24348513, 0.26158784))]), download=True)
         test_ds = CIFAR10("datasets", train=False,
-                          transform=Compose([ToTensor(), Normalize((0.49139968, 0.48215841, 0.44653091),
-                                                                   (0.24703223, 0.24348513, 0.26158784))]),
+                          transform=Compose([
+                              Resize(224),
+                              ToTensor(),
+                              Normalize((0.49139968, 0.48215841, 0.44653091),
+                                        (0.24703223, 0.24348513, 0.26158784))]),
                           download=True)
     elif args.dogs:
         print("Using Stanford Dogs dataset")
