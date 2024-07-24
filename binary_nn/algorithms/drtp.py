@@ -95,9 +95,9 @@ class DRTPFast(ConfigurableMixin):
         if self.init == "normal":
             nn.init.normal_(mat)
         elif self.init == "kaiming_uniform":
-            nn.init.kaiming_uniform_(mat, mode="fan_out")
+            nn.init.kaiming_uniform_(mat, mode="fan_in", nonlinearity="linear")
         elif self.init == "kaiming_normal":
-            nn.init.kaiming_normal_(mat, mode="fan_out")
+            nn.init.kaiming_normal_(mat, mode="fan_in", nonlinearity="linear")
         else:
             raise ValueError(f"unknown initialization: {self.init}")
 
