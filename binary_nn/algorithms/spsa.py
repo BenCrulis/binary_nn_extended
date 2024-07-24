@@ -22,11 +22,13 @@ class SPSA(ConfigurableMixin):
         self.exclude_norm = exclude_normalization_layers
 
     def config(self):
-        return {"SPSA distribution": self.distribution, "SPSA exclude normalization layers": self.exclude_norm}
+        return {"spsa-c": self.c,
+                "SPSA distribution": self.distribution, "SPSA exclude normalization layers": self.exclude_norm}
 
     def _generate_perturbation(self, shape, device=None):
         if self.distribution == "rademacher":
-            return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(-1) * 2 - 1
+            return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(
+                -1) * 2 - 1
         elif self.distribution == "gaussian":
             return torch.randn(shape, device=device)
 
@@ -44,8 +46,8 @@ class SPSA(ConfigurableMixin):
 
         for module in model.modules():
             is_norm = isinstance(module, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.LayerNorm, nn.GroupNorm))
-            if len(list(module.parameters(recurse=False))) > 0 and not isinstance(module, ParametrizationList) and\
-               (not is_norm or not self.exclude_norm):
+            if len(list(module.parameters(recurse=False))) > 0 and not isinstance(module, ParametrizationList) and \
+                    (not is_norm or not self.exclude_norm):
                 candidate_modules.append(module)
 
         i = torch.randint(0, len(candidate_modules), (1,)).item()
@@ -58,7 +60,7 @@ class SPSA(ConfigurableMixin):
         for p in mod.parameters():
             pert = self._generate_perturbation(p.shape, device=p.device)
             perturbation.append(pert)
-            p.data -= pert*self.c
+            p.data -= pert * self.c
 
         y_minus = model(x)
         l_minus = loss_fn(y_minus, y)
@@ -66,7 +68,7 @@ class SPSA(ConfigurableMixin):
         # compute w_plus
         mod.load_state_dict(old_state)
         for p, pert in zip(mod.parameters(), perturbation):
-            p.data += pert*self.c
+            p.data += pert * self.c
 
         y_plus = model(x)
         l_plus = loss_fn(y_plus, y)
@@ -77,10 +79,7 @@ class SPSA(ConfigurableMixin):
         opt.zero_grad()
         mod.load_state_dict(old_state)
         for p, pert in zip(mod.parameters(), perturbation):
-            p.grad = pert*gain  # we can multiply instead of dividing because it is the same when using Rademacher
+            p.grad = pert * gain  # we can multiply instead of dividing because it is the same when using Rademacher
         opt.step()
 
         return l, y_pred
-
-
-
