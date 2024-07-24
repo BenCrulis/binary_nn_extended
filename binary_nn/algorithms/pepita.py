@@ -109,7 +109,8 @@ class Pepita(ConfigurableMixin):
 
         input_error = error.flatten(1) @ self.bw
         perturbed_input = x + input_error.view(x.shape)
-        new_input = torch.cat([x, perturbed_input])  #  to avoid storing the activations, we recompute them with the error
+        # to avoid storing the activations, we recompute them along with the error
+        new_input = torch.cat([x, perturbed_input])
 
         # clears up hooks that discover the model structure
         for handle in handles:
@@ -148,6 +149,16 @@ class Pepita(ConfigurableMixin):
                 w_grad = w_grad / k
                 w = self.mod.parametrizations["weight"].original if hasattr(self.mod, "parametrizations") else self.mod.weight
                 w.grad = w_grad
+
+                if hasattr(self.mod, "bias") and self.mod.bias is not None:
+                    if hasattr(self.mod, "parametrizations") and "bias" in self.mod.parametrizations.keys():
+                        b = self.mod.parametrizations["bias"].original
+                    else:
+                        b = self.mod.bias
+                    if isinstance(self.mod, nn.Linear):
+                        b.grad = err.sum(tuple((x for x in range(0, len(err.shape)-1))))
+                    else:
+                        b.grad = err.sum((0, *(x for x in range(2, len(err.shape)))))
                 pass
 
         for weight_mod, act in blocks:
