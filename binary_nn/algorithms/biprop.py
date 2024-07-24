@@ -1,8 +1,10 @@
 import math
+from typing import Optional, Union, overload
 
 import torch
-from torch import nn
+from torch import nn, device, dtype, Tensor
 from torch.nn.init import calculate_gain
+from torch.nn.modules.module import T
 from torch.optim import Optimizer
 from torch.nn.utils.parametrize import register_parametrization
 
@@ -64,6 +66,10 @@ class SeededRandomWeights(nn.Module):
         new_w = torch.rand(size=self.shape, device=self.device) * (2.0 * self.bound) - self.bound
         torch.set_rng_state(state)
         return new_w
+
+    def to(self, *args, device=None, **kwargs):
+        self.device = device
+        return super().to(*args, **kwargs)
 
     def forward(self, w):
         new_w = self.get_float_weights()
