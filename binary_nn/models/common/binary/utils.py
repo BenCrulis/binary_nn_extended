@@ -6,7 +6,7 @@ class SignSatFun(torch.autograd.Function):
     @staticmethod
     def forward(ctx: Any, x) -> Any:
         ctx.save_for_backward(x)
-        return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
+        return torch.where(x > 0.0, 1.0, -1.0)
 
     @staticmethod
     def backward(ctx: Any, grad_output: Any) -> Any:
@@ -20,7 +20,7 @@ class SignUnSatFun(torch.autograd.Function):
     @staticmethod
     def forward(ctx: Any, x) -> Any:
         ctx.save_for_backward(x)
-        return torch.where(x > 0.0, torch.ones_like(x), -torch.ones_like(x))
+        return torch.where(x > 0.0, 1.0, -1.0)
 
     @staticmethod
     def backward(ctx: Any, grad_output: Any) -> Any:
