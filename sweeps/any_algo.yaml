@@ -5,7 +5,7 @@ command:
   - train.py
   - --augment
   - --method
-  - ${ALGO}
+  - ${envvar:ALGO}
   - --epochs
   - 80
   - --bs
