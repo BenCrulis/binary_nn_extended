@@ -102,6 +102,9 @@ def parse_args():
     # HSIC
     ap.add_argument("--hsic-gamma", type=float, default=2.0, help="HSIC gamma value")
 
+    # PEPITA
+    ap.add_argument("--pepita-gain", type=float, default=1.0, help="pepita gain for the random backward matrix scale")
+
     # SPSA
     ap.add_argument("--spsa-c", type=float, default=1e-3, help="c parameter of SPSA")
 
@@ -161,7 +164,7 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "hsic":
         return HSIC(num_classes, gamma=args.hsic_gamma)
     elif algo_name == "pepita":
-        return Pepita(num_classes, model_config["output_layer"])
+        return Pepita(num_classes, model_config["output_layer"], gain=args.pepita_gain)
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":

@@ -38,7 +38,7 @@ class Pepita(ConfigurableMixin):
         self.input_shape = None
 
     def config(self):
-        return {"PEPITA gain": self.gain}
+        return {"pepita-gain": self.gain}
 
     def _init_bw(self, error_shape, device=None):
         self.bw = torch.empty(error_shape, device=device)
