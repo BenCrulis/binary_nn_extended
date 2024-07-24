@@ -7,4 +7,4 @@ def ordered_list(values, name_template):
 
 
 def wandb_table_layers(values, col_name):
-    return wandb.Table([col_name, "layer"], data=torch.stack([values, torch.arange(len(values))]).T)
+    return wandb.Table([col_name, "layer"], data=torch.stack([values.cpu(), torch.arange(len(values))]).T)
