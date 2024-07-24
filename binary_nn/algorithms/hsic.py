@@ -31,9 +31,9 @@ class HSIC(ConfigurableMixin):
         signal = eye[y]
         signal -= signal.mean(1)[:, None]
 
-        def detach_hook(mod, input):
-            input = input[0] if isinstance(input, tuple) else input
-            return input.detach()
+        def detach_output_hook(mod, input, output):
+            output = output[0] if isinstance(output, tuple) else output
+            return output.detach()
 
         def signal_hook(mod, input):
             input = input[0] if isinstance(input, tuple) else input
@@ -49,7 +49,7 @@ class HSIC(ConfigurableMixin):
                 handle = module.register_forward_pre_hook(signal_hook)
                 handles.append(handle)
             if isinstance(module, self.modules_to_detach):
-                handle = module.register_forward_pre_hook(detach_hook)
+                handle = module.register_forward_hook(detach_output_hook)
                 handles.append(handle)
 
         opt.zero_grad()
