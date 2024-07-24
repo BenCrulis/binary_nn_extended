@@ -77,7 +77,7 @@ class MaskedWeights(nn.Module):
         super().__init__()
         self.shape = shape
         self.device = device
-        self.scores = nn.Parameter(torch.ones(shape), requires_grad=True)
+        self.scores = nn.Parameter(torch.ones(shape, device=device), requires_grad=True)
         self.prune_rate = prune_rate
 
         if constant_init is None:
@@ -139,5 +139,5 @@ class Biprop(ConfigurableMixin):
                 if mod.bias is not None:
                     mod.bias.requires_grad = False
                 set_seeded_random_weights(mod, binarize=False)
-                register_parametrization(mod, "weight", MaskedWeights(mod.weight.shape, 0.2).to(w.device))
+                register_parametrization(mod, "weight", MaskedWeights(mod.weight.shape, 0.2, device=w.device))
 
