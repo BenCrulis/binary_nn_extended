@@ -17,6 +17,7 @@ def parse_args():
     parser.add_argument("--sweep", action="store_true")
     parser.add_argument("--timeout", type=int, default=60, help="timeout for graphql requests")
     parser.add_argument("--include", nargs="*", help="metrics columns to include")
+    parser.add_argument("--tag-filter", type=str, help="keep runs with tag")
 
     return parser.parse_args()
 
@@ -28,6 +29,7 @@ def main():
     filename: Path = args.filename
     is_sweep = args.sweep
     timeout = args.timeout
+    tag = args.tag_filter
     cols = None if args.include is None else (["_timestamp", "_step", "_runtime"] + args.include)
     api = wandb.Api(timeout=timeout)
 
@@ -45,6 +47,8 @@ def main():
 
     dfs = []
     for run in tqdm(runs):
+        if tag is not None and tag not in run.tags:
+            continue
         history: pd.DataFrame = run.history(samples=1e9)
         history["run_id"] = run.id
 
