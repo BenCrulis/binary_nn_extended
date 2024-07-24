@@ -1,0 +1,32 @@
+program: binary_nn/train.py
+method: grid
+command:
+  - ./venv/bin/python3
+  - train.py
+  - --augment
+  - --method
+  - dfa
+  - --epochs
+  - 80
+  - --bs
+  - 64
+  - --wd
+  - 1e-5
+  - ${args_no_boolean_flags}
+
+metric:
+  name: validation/accuracy
+  goal: maximize
+parameters:
+  model:
+    values: [MLPMixer]
+  mlp-mixer-layers:
+    values: [12, 18, 24]
+  mlp-mixer-dim:
+    values: [512, 768, 1024]
+  lr:
+    values: [1e-3, 1e-4, 1e-5]
+  binary-act:
+    values: [True, False]
+  binary-weights:
+    values: [True, False]

@@ -59,6 +59,10 @@ def parse_args():
     ap.add_argument("--bs", type=int, default=10, help="batch size")
     ap.add_argument("--epochs", type=int, default=80)
 
+    # MLPMixer
+    ap.add_argument("--mlp-mixer-layers", type=int, default=12, help="number of layers in MLPMixer")
+    ap.add_argument("--mlp-mixer-dim", type=int, default=512, help="size of hidden dimension in MLPMixer")
+
     # algorithm specific options
     # Local search
     ap.add_argument("--mut-prob", type=float, default=0.1, help="mutation probability")
@@ -77,7 +81,7 @@ def parse_args():
     return ap.parse_args()
 
 
-def load_model(model_name, num_classes):
+def load_model(model_name, num_classes, args):
     if model_name == "MobileNetV2":
         return MobileNetV2(num_classes=num_classes)
     elif model_name == "vgg16":
@@ -89,7 +93,8 @@ def load_model(model_name, num_classes):
         model.classifier[-1] = nn.Linear(4096, num_classes)
         return model
     elif model_name == "MLPMixer":
-        return MLPMixer(image_size=224, channels=3, patch_size=16, dim=512, depth=12, num_classes=num_classes)
+        return MLPMixer(image_size=224, channels=3, patch_size=16, dim=args.mlp_mixer_dim,
+                        depth=args.mlp_mixer_layers, num_classes=num_classes)
     else:
         raise ValueError(f"unknown model: {model_name}")
 
@@ -180,7 +185,7 @@ def main():
     if reconstruction:
         model = load_reconstruction_model(model_name)
     else:
-        model = load_model(model_name, num_classes)
+        model = load_model(model_name, num_classes, args)
 
     n_params = count_parameters(model)
     print(f"using model {model_name} with {n_params}")
