@@ -82,7 +82,7 @@ class SPSAH(ConfigurableMixin):
         gain = (l_plus - l_minus) / (2.0 * self.c)
 
         opt.zero_grad()
-        saved_out[0].backward(-perturbation[0]*gain)
+        saved_out[0].backward(perturbation[0]*gain)
         opt.step()
 
         return l, y_pred
