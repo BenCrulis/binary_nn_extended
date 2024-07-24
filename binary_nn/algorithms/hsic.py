@@ -36,7 +36,8 @@ class HSIC(ConfigurableMixin):
             tensor = tensor[0] if isinstance(tensor, tuple) else tensor
             if not tensor.requires_grad:
                 return
-            l = hsic.estimate_hsic_zy_objective(tensor.view((len(tensor), -1)), signal, self.z_kernel, self.y_kernel, self.gamma)
+            l = hsic.estimate_hsic_zy_objective(tensor.view((len(tensor), -1)), signal, self.z_kernel, self.y_kernel,
+                                                self.gamma, self.mode)
             l.backward()
             return tensor.detach()
 
