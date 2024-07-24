@@ -8,7 +8,7 @@ import torchmetrics
 from torch.nn.utils.parametrize import ParametrizationList
 from torchmetrics import Metric
 
-from binary_nn.models.common.binary.modules import Sign, SignUnsat
+from binary_nn.models.common.binary.modules import Sign, SignUnsat, BiRealAct
 
 
 def recurse_modules_except_parametrizations(mod: nn.Module):
@@ -25,7 +25,8 @@ class Saturation():
 
         self.threshold = threshold
 
-        to_hook = (nn.Sigmoid, nn.SiLU, nn.ReLU, nn.ELU, nn.GELU, nn.CELU, nn.Hardswish, nn.Softplus, Sign, SignUnsat)
+        to_hook = (nn.Sigmoid, nn.SiLU, nn.ReLU, nn.ELU, nn.GELU, nn.CELU, nn.Hardswish, nn.Softplus, Sign, SignUnsat,
+                   BiRealAct)
 
         handles = []
         for mod in recurse_modules_except_parametrizations(model):
