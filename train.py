@@ -164,6 +164,10 @@ def compute_run_name(args):
         name += f"-{args.opt}"
     if args.binary_weights and args.binary_act:
         name += "-binary"
+    elif args.biprop is not None:
+        name += "-biprop"
+        if args.binary_act:
+            name += "-signSat"
     elif args.binary_weights:
         name += "-binary-weights"
     elif args.binary_act:
