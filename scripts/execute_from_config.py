@@ -51,10 +51,10 @@ for i in range(args.repeat):
             print(f"exitcode is {exitcode}")
             print()
             pass
-    print("end of iteration, waiting 1s")
-    time.sleep(1)
-    if stop:
-        print("stopping...")
-        break
+        print("end of iteration, waiting 2s")
+        time.sleep(2)
+        if stop:
+            print("stopping...")
+            break
 
 print("done.")
