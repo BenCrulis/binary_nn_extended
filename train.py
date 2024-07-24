@@ -61,6 +61,7 @@ def parse_args():
     # algorithm specific options
     # Local search
     ap.add_argument("--mut-prob", type=float, default=0.1, help="mutation probability")
+    ap.add_argument("--ls-accuracy", action="store_true", help="override loss, use accuracy as the fitness function")
 
     # checkpoint related
     ap.add_argument("--save", action="store_true", help="save checkpoints")
@@ -111,7 +112,7 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     elif algo_name == "drtp":
         return DRTP(model_config["output_layer"], num_classes)
     elif algo_name == "ls":
-        return LS(args.mut_prob)
+        return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
