@@ -194,6 +194,7 @@ def main():
 
     run_name = compute_run_name(args)
     logger = WandbLogger(project="binary nn extended", name=run_name, config={
+        "args": args,
         "model": model_name,
         "parameters": n_params,
         "optimizer": opt,
@@ -209,6 +210,7 @@ def main():
         "binary activations": binary_act,
         "saturating binary activation": not unsat,
         "binary weights": binary_weights,
+        "mutation-rate": args.mut_prob,
         "save": save,
         "device": str(device),
     })
