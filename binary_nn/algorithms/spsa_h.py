@@ -16,6 +16,8 @@ class ExpendableTensor(torch.Tensor):
     def __add__(self, other):
         if self.shape[0] == other.shape[0] * 2:
             return torch.add(self, other.repeat((2, *[1 for i in other.shape[1:]])))
+        elif self.shape[0] * 2 == other.shape[0]:
+            return torch.add(self.repeat((2, *[1 for i in other.shape[1:]])), other)
         return torch.add(self, other)
 
 
