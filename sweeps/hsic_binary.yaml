@@ -1,0 +1,26 @@
+program: binary_nn/train.py
+method: grid
+command:
+  - ./venv/bin/python3
+  - train.py
+  - --augment
+  - --method
+  - hsic
+  - --epochs
+  - 80
+  - --bs
+  - 64
+  - --wd
+  - 1e-5
+  - --binary-act
+  - --binary-weights
+  - ${args_no_boolean_flags}
+
+metric:
+  name: validation/accuracy
+  goal: maximize
+parameters:
+  model:
+    values: [MLPMixer, vgg19, MobileNetV2]
+  lr:
+    values: [1e-3, 1e-4, 1e-5]
