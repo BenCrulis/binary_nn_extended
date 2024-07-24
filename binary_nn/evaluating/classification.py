@@ -4,8 +4,8 @@ import torchmetrics
 from torch.utils.data import DataLoader
 
 
-def eval_classification_iterator(model, ds, metrics, batch_size=100, device=None):
-    it = iter(eval_classification(model, ds, metrics, batch_size, device=device))
+def eval_classification_iterator(model, ds, metrics, batch_size=100, device=None, num_workers=4):
+    it = iter(eval_classification(model, ds, metrics, batch_size, device=device, num_workers=num_workers))
 
     class EvalIterator():
         def __len__(self):
@@ -16,9 +16,9 @@ def eval_classification_iterator(model, ds, metrics, batch_size=100, device=None
     return EvalIterator()
 
 
-def eval_classification(model, ds, metrics, batch_size=100, device=None):
+def eval_classification(model, ds, metrics, batch_size=100, device=None, num_workers=4):
 
-    dl = DataLoader(ds, batch_size=batch_size)
+    dl = DataLoader(ds, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
 
     for x, y in dl:
         x = x.to(device)

@@ -65,6 +65,7 @@ def parse_args():
     ap.add_argument("--device", type=int, default=0, help="gpu device index")
     ap.add_argument("--early-stopping-delta", type=float, default=0.001,
                     help="minimum validation loss delta required to not trigger early stopping")
+    ap.add_argument("--num-workers", default=4, type=int, help="number of workers for data loading")
 
     # dataset config
     ap.add_argument("--dogs", action="store_true", help="use Stanford Dogs dataset")
@@ -381,7 +382,7 @@ def main():
     i = 0
     for epoch, epoch_iterator in enumerate(train(model, train_ds, opt, loss_fn, reconstruction=reconstruction,
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
-                                                 device=device, opt_kwargs={"weight_decay": wd})):
+                                                 device=device, num_workers=args.num_workers, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
         for metric in metrics.values():
             metric.reset()
@@ -437,7 +438,7 @@ def main():
         for metric in metrics.values():
             metric.reset()
         # saturation_metric.reset()
-        pbar = tqdm(eval_classification_iterator(model, eval_ds, metrics, batch_size=bs, device=device))
+        pbar = tqdm(eval_classification_iterator(model, eval_ds, metrics, batch_size=bs, device=device, num_workers=args.num_workers))
         for r in pbar:
             pbar.set_description(f"{r}")
 

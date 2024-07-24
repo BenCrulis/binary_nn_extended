@@ -44,7 +44,8 @@ def train(model: nn.Module,
           batch_size=10,
           reconstruction=False,
           train_callback=None,
-          device=None):
+          device=None,
+          num_workers=4):
     if train_callback is None:
         train_callback = train_iteration
     model = model.to(device)
@@ -57,7 +58,7 @@ def train(model: nn.Module,
     else:
         opt = optimizer
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, persistent_workers=True)
 
     class EpochIterator():
         def __init__(self, iter):
