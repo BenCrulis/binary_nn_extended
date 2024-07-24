@@ -26,7 +26,7 @@ from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
-from binary_nn.evaluating.metrics.common.ordered_list import ordered_list
+from binary_nn.evaluating.metrics.common.ordered_list import ordered_list, wandb_table_layers
 from binary_nn.evaluating.metrics.gradnorm import GradNorm
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
 from binary_nn.evaluating.metrics.saturation import Saturation
@@ -326,8 +326,10 @@ def main():
                     "train/batch loss": l.detach().cpu().item(),
                     "train/grad norms": grad_norms,
                     "train/saturation": sat,
-                    **ordered_list(grad_norms, "train/layer {i} grad norm"),
-                    **ordered_list(sat, "train/layer {i} saturation"),
+                    # **ordered_list(grad_norms, "train/layer {i} grad norm"),
+                    # **ordered_list(sat, "train/layer {i} saturation"),
+                    "train/mean gradient": wandb_table_layers(grad_norms, "mean"),
+                    "train/average saturation": wandb_table_layers(sat, "mean"),
                 }, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
@@ -341,7 +343,7 @@ def main():
         eval_log = {}
         for metric_name, metric in metrics.items():
             eval_log[f"{eval_set}/{metric_name}"] = metric.compute().cpu()
-        eval_log[f"{eval_set}/saturation"] = saturation_metric.compute()
+        # eval_log[f"{eval_set}/saturation"] = saturation_metric.compute()
         if os.environ.get("WANDB", "") == "1":
             logger.log(eval_log, step=i, commit=True)
 
