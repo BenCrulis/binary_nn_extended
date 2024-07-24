@@ -26,6 +26,7 @@ from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
+from binary_nn.evaluating.metrics.common.ordered_list import ordered_list
 from binary_nn.evaluating.metrics.gradnorm import GradNorm
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
 from binary_nn.evaluating.metrics.saturation import Saturation
@@ -325,12 +326,14 @@ def main():
                     "train/batch loss": l.detach().cpu().item(),
                     "train/grad norms": grad_norms,
                     "train/saturation": sat,
+                    **ordered_list(grad_norms, "train/layer {i} grad norm"),
+                    **ordered_list(sat, "train/layer {i} saturation"),
                 }, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
             metric.reset()
-        saturation_metric.reset()
+        # saturation_metric.reset()
         pbar = tqdm(eval_classification_iterator(model, eval_ds, metrics, batch_size=bs, device=device))
         for r in pbar:
             pbar.set_description(f"{r}")
