@@ -312,6 +312,13 @@ def main():
         for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
             i += 1
 
+            train_log = {
+                    "epoch": epoch,
+                    "train/batch loss": l.detach().cpu().item(),
+                    # **ordered_list(grad_norms, "train/layer {i} grad norm"),
+                    # **ordered_list(sat, "train/layer {i} saturation"),
+                }
+
             if binary_weights:
                 clip_weights_for_binary_layers(model)
 
@@ -319,18 +326,17 @@ def main():
             sat = saturation_metric()
             saturation_metric.reset_buffers()
 
-            # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
-            if os.environ.get("WANDB", "") == "1":
-                logger.log({
-                    "epoch": epoch,
-                    "train/batch loss": l.detach().cpu().item(),
+            if i % 50 == 0:
+                train_log.update({
                     "train/grad norms": grad_norms,
                     "train/saturation": sat,
-                    # **ordered_list(grad_norms, "train/layer {i} grad norm"),
-                    # **ordered_list(sat, "train/layer {i} saturation"),
                     "train/mean gradient": wandb_table_layers(grad_norms, "mean"),
                     "train/average saturation": wandb_table_layers(sat, "mean"),
-                }, step=i, commit=False)
+                })
+
+            # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
+            if os.environ.get("WANDB", "") == "1":
+                logger.log(train_log, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
