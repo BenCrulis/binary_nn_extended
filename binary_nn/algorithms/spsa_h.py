@@ -65,7 +65,7 @@ class SPSAH(ConfigurableMixin):
                 out = mod(input)
                 saved_out[0] = out
 
-            pert = self._generate_perturbation(out.shape)
+            pert = self._generate_perturbation(out.shape, device=out.device)
             perturbation[0] = pert
             out_pos = out + pert*self.c
             out_neg = out - pert*self.c
