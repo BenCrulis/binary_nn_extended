@@ -62,6 +62,8 @@ def parse_args():
     ap.add_argument("--reconstruction", action="store_true")
     ap.add_argument("--augment", action="store_true", help="use data augmentation")
     ap.add_argument("--device", type=int, default=0, help="gpu device index")
+    ap.add_argument("--early-stopping-delta", type=float, default=0.001,
+                    help="minimum validation loss delta required to not trigger early stopping")
 
     # dataset config
     ap.add_argument("--dogs", action="store_true", help="use Stanford Dogs dataset")
@@ -232,6 +234,7 @@ def main():
     binary_act = args.binary_act
     bireal_act = args.bireal_act
     unsat = args.unsat
+    early_stopping_delta = args.early_stopping_delta
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
@@ -356,6 +359,8 @@ def main():
         # "recall": torchmetrics.Recall("multiclass", num_classes=num_classes).to(device)
     }
 
+    eval_losses = []
+
     gradnorm_metric = GradNorm(model, sample).to(device)
     meanabsgrad_metric = MeanAbsGrad(model, sample).to(device)
     saturation_metric = Saturation(model, threshold=metric_saturation_threshold)
@@ -423,6 +428,9 @@ def main():
         for r in pbar:
             pbar.set_description(f"{r}")
 
+        eval_loss = metrics["loss"].compute().cpu().item()
+        eval_losses.append(eval_loss)
+
         for metric_name, metric in metrics.items():
             eval_log[f"{eval_set}/{metric_name}"] = metric.compute().cpu()
         # eval_log[f"{eval_set}/saturation"] = saturation_metric.compute()
@@ -430,6 +438,11 @@ def main():
             logger.log(eval_log, step=i, commit=True)
 
         print("end of eval")
+
+        if len(eval_losses) >= 5 and (eval_losses[-5] - eval_losses[-1]) <= early_stopping_delta:
+            print("No improvement over the last 5 epochs, stopping run.")
+            return
+        pass
 
     return
 
