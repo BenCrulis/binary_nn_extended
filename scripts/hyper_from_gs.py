@@ -9,6 +9,13 @@ import numpy as np
 import pandas as pd
 
 
+aliases = {
+    "algorithm": "method",
+    "binary activations": "binary-act",
+    "binary weights": "binary-weights"
+}
+
+
 def convert_val(val):
     if isinstance(val, (pd.BooleanDtype, np.bool_, bool)):
         return bool(val)
@@ -54,8 +61,7 @@ if out_path is not None:
 
 df = pd.read_csv(input_path)
 
-if "algorithm" in df.columns:
-    df = df.rename(columns={"algorithm": "method"})
+df = df.rename(aliases, axis="columns")
 
 table = df.groupby("id").min() if args.minimize else df.groupby("id").max()
 
