@@ -18,6 +18,9 @@ class SPSA(ConfigurableMixin):
         self.modules_to_hook = modules_to_hook
         self.distribution = distribution
 
+    def config(self):
+        return {"SPSA distribution": self.distribution}
+
     def _generate_perturbation(self, shape, device=None):
         if self.distribution == "rademacher":
             return torch.distributions.Bernoulli(probs=torch.tensor([0.5], device=device)).sample(shape).squeeze(-1) * 2 - 1
