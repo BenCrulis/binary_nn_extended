@@ -43,6 +43,7 @@ def parse_args():
     ap.add_argument("--train-fraction", type=float, default=0.9)
     ap.add_argument("--reconstruction", action="store_true")
     ap.add_argument("--augment", action="store_true", help="use data augmentation")
+    ap.add_argument("--device", type=int, default=0, help="gpu device index")
 
     # model related options
     ap.add_argument("--model", default="MobileNetV2")
@@ -174,7 +175,7 @@ def main():
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
-    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(f"cuda:{args.device}") if torch.cuda.is_available() else torch.device("cpu")
     print("using device:", device)
 
     num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
