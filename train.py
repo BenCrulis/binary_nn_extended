@@ -335,8 +335,8 @@ def main():
     metrics = {
         "loss": LossMetric(loss_fn).to(device),
         "accuracy": Accuracy("multiclass", num_classes=num_classes).to(device),
-        "precision": torchmetrics.Precision("multiclass", num_classes=num_classes).to(device),
-        "recall": torchmetrics.Recall("multiclass", num_classes=num_classes).to(device)
+        # "precision": torchmetrics.Precision("multiclass", num_classes=num_classes).to(device),
+        # "recall": torchmetrics.Recall("multiclass", num_classes=num_classes).to(device)
     }
 
     gradnorm_metric = GradNorm(model, sample).to(device)
@@ -350,6 +350,8 @@ def main():
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
                                                  device=device, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
+        for metric in metrics.values():
+            metric.reset()
         time_before = time.time()
         gradnorm_metric.reset()
         # saturation_metric.reset()
@@ -363,6 +365,9 @@ def main():
                     # **ordered_list(grad_norms, "train/layer {i} grad norm"),
                     # **ordered_list(sat, "train/layer {i} saturation"),
                 }
+
+            for metric_name, metric in metrics.items():
+                train_log[f"batch/{metric_name}"] = metric(y_pred, y).cpu()
 
             if binary_weights:
                 clip_weights_for_binary_layers(model)
@@ -388,6 +393,11 @@ def main():
             if os.environ.get("WANDB", "") == "1":
                 logger.log(train_log, step=i, commit=False)
         print(f"end of epoch {epoch}")
+
+        eval_log = {}
+        for metric_name, metric in metrics.items():
+            eval_log[f"train/{metric_name}"] = metric.compute().cpu()
+
         print("evaluating on validation set")
         for metric in metrics.values():
             metric.reset()
@@ -396,7 +406,6 @@ def main():
         for r in pbar:
             pbar.set_description(f"{r}")
 
-        eval_log = {}
         for metric_name, metric in metrics.items():
             eval_log[f"{eval_set}/{metric_name}"] = metric.compute().cpu()
         # eval_log[f"{eval_set}/saturation"] = saturation_metric.compute()
