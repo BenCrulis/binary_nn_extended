@@ -66,10 +66,11 @@ class Pepita(ConfigurableMixin):
         current_block = None
 
         def structure_hook(mod, input):
+            nonlocal model
             torch.set_grad_enabled(False)
             nonlocal current_block
             if current_block is None:
-                if isinstance(mod, WEIGHT_MODS):
+                if isinstance(mod, WEIGHT_MODS) and mod is not output_layer:
                     current_block = [mod]
                     return
             elif len(current_block) == 1:
@@ -90,7 +91,7 @@ class Pepita(ConfigurableMixin):
         output_layer = model.get_submodule(parse_module_path(self.output_layer, model))
 
         for m in model.modules():
-            if m not in parametrization_mods and m is not output_layer:
+            if m not in parametrization_mods:
                 handle = m.register_forward_pre_hook(structure_hook)
                 handles.append(handle)
 
