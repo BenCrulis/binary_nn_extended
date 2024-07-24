@@ -7,4 +7,4 @@ def ordered_list(values, name_template):
 
 
 def wandb_table_layers(values, col_name):
-    return wandb.Table([col_name, "layer"], data=[[i, val] for i, val in enumerate(values)])
+    return wandb.Table(["layer", col_name], data=[[i, val] for i, val in enumerate(values)])
