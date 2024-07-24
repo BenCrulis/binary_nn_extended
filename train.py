@@ -26,7 +26,9 @@ from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
+from binary_nn.evaluating.metrics.gradnorm import GradNorm
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
+from binary_nn.evaluating.metrics.saturation import Saturation
 from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign, \
     clip_weights_for_binary_layers
 from binary_nn.models.common.utils import count_parameters
@@ -192,6 +194,8 @@ def main():
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
+    metric_saturation_threshold = 1.0
+
     if args.no_wandb:
         os.environ["WANDB"] = "0"
     if os.environ.get("WANDB", "") == "":
@@ -223,13 +227,16 @@ def main():
                           download=True)
     else:
         num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
+    sample = ds[0][0][None, ...]
 
     algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes, args)
 
     if not args.test_set:
         train_ds, eval_ds = random_split(ds, [train_fraction, 1.0-train_fraction])
+        eval_set = "validation"
     else:
         train_ds, eval_ds = ds, test_ds
+        eval_set = "test"
 
     print(num_classes)
 
@@ -278,6 +285,7 @@ def main():
             "mutation-rate": args.mut_prob,
             "save": save,
             "device": str(device),
+            "metric saturation threshold": metric_saturation_threshold
         })
 
     metrics = {
@@ -287,6 +295,9 @@ def main():
         "recall": torchmetrics.Recall("multiclass", num_classes=num_classes).to(device)
     }
 
+    gradnorm_metric = GradNorm(model, sample).to(device)
+    saturation_metric = Saturation(model, threshold=metric_saturation_threshold).to(device)
+
     model.to(device)
 
     i = 0
@@ -294,6 +305,8 @@ def main():
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
                                                  device=device, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
+        gradnorm_metric.reset()
+        saturation_metric.reset()
         # training loop
         for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
             i += 1
@@ -301,23 +314,31 @@ def main():
             if binary_weights:
                 clip_weights_for_binary_layers(model)
 
+            grad_norms = gradnorm_metric()
+            sat = saturation_metric()
+            saturation_metric.reset_buffers()
+
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
             if os.environ.get("WANDB", "") == "1":
                 logger.log({
                     "epoch": epoch,
                     "train/batch loss": l.detach().cpu().item(),
+                    "train/grad norms": grad_norms,
+                    "train/saturation": sat,
                 }, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
             metric.reset()
+        saturation_metric.reset()
         pbar = tqdm(eval_classification_iterator(model, eval_ds, metrics, batch_size=bs, device=device))
         for r in pbar:
             pbar.set_description(f"{r}")
 
         eval_log = {}
         for metric_name, metric in metrics.items():
-            eval_log[f"validation/{metric_name}"] = metric.compute().cpu()
+            eval_log[f"{eval_set}/{metric_name}"] = metric.compute().cpu()
+        eval_log[f"{eval_set}/saturation"] = saturation_metric.compute()
         if os.environ.get("WANDB", "") == "1":
             logger.log(eval_log, step=i, commit=True)
 
