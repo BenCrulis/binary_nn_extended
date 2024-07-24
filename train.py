@@ -31,6 +31,7 @@ from binary_nn.algorithms.spsa import SPSA
 from binary_nn.algorithms.spsa_g import SPSAG
 from binary_nn.algorithms.spsa_h import SPSAH
 from binary_nn.datasets.stanforddogs import StanfordDogs, load_dogs
+from binary_nn.datasets.indoor import load_indoor
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.common.ordered_list import ordered_list, wandb_table_layers
@@ -67,6 +68,7 @@ def parse_args():
 
     # dataset config
     ap.add_argument("--dogs", action="store_true", help="use Stanford Dogs dataset")
+    ap.add_argument("--indoor", action="store_true", help="use Scene Recognition dataset")
     ap.add_argument("--mnist", action="store_true", help="use MNIST dataset")
     ap.add_argument("--fashion-mnist", action="store_true", help="use FashionMNIST dataset")
     ap.add_argument("--cifar10", action="store_true", help="use CIFAR10 dataset")
@@ -272,6 +274,9 @@ def main():
     elif args.dogs:
         print("Using Stanford Dogs dataset")
         num_classes, ds, test_ds = load_dogs(ds_config, augment=augment)
+    elif args.indoor:
+        print("Using MIT Indoor Scene Recognition dataset")
+        num_classes, ds, test_ds = load_indoor(ds_config, augment=augment)
     else:
         print('Using ImageNette dataset')
         num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)

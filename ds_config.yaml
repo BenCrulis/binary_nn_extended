@@ -2,3 +2,5 @@ imagenette:
   path: "C:\\data\\datasets\\imagenette2-320"
 stanforddogs:
   path: "C:\\data\\datasets\\StanfordDogs"
+indoor:
+  path: "C:\\data\\datasets\\Indoor"
