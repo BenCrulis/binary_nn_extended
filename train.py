@@ -21,6 +21,7 @@ from torchvision.models.vgg import vgg19, vgg19_bn, vgg16_bn
 from torchvision.transforms import ToTensor, Compose, Normalize
 from mlp_mixer_pytorch import MLPMixer
 
+from binary_nn.algorithms.biprop import Biprop
 from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP, DRTPFast
 from binary_nn.algorithms.local_search import LS
@@ -33,7 +34,7 @@ from binary_nn.evaluating.metrics.gradnorm import GradNorm
 from binary_nn.evaluating.metrics.lossMetric import LossMetric
 from binary_nn.evaluating.metrics.saturation import Saturation
 from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign, \
-    clip_weights_for_binary_layers
+    clip_weights_for_binary_layers, replace_activations_to_bireal
 from binary_nn.models.common.utils import count_parameters
 from binary_nn.models.fullyconnected import FullyConnected
 from binary_nn.training.training import train
@@ -66,6 +67,8 @@ def parse_args():
     ap.add_argument("--binary-weights", action="store_true")
     ap.add_argument("--binary-act", action="store_true")
     ap.add_argument("--unsat", action="store_true")
+    ap.add_argument("--bireal-act", action="store_true")
+    ap.add_argument("--biprop", nargs="?", const=0.2, type=float)
 
     # training algorithm
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
@@ -199,6 +202,7 @@ def main():
     epochs = args.epochs
     binary_weights = args.binary_weights
     binary_act = args.binary_act
+    bireal_act = args.bireal_act
     unsat = args.unsat
     seed = np.random.randint(2**31)
     seed_everything(seed)
@@ -254,13 +258,20 @@ def main():
     else:
         model = load_model(model_name, num_classes, args)
 
+    if args.biprop is not None:
+        Biprop(model, args.biprop)
+
     n_params = count_parameters(model)
     print(f"using model {model_name} with {n_params}")
 
     model_config = config["model_config"][("ae" + model_name) if reconstruction else model_name]
 
     if binary_act:
+        print("applying Sign activations")
         replace_activations_to_sign(model, unsaturating=unsat)
+    elif bireal_act:
+        print("applying BiReal activations")
+        replace_activations_to_bireal(model)
     if binary_weights:
         apply_binarization_parametrization(model, model_config["prevent_binarization"])
 

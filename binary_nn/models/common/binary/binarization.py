@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.utils.parametrize import register_parametrization
 
-from binary_nn.models.common.binary.modules import Sign, SignUnsat
+from binary_nn.models.common.binary.modules import Sign, SignUnsat, BiRealAct
 from binary_nn.models.common.utils import map_layers_generic
 
 
@@ -40,3 +40,11 @@ def replace_activations_to_sign(model: nn.Module, unsaturating=False):
             model.register_module(name, SignUnsat() if unsaturating else Sign())
         else:
             replace_activations_to_sign(child, unsaturating)
+
+
+def replace_activations_to_bireal(model: nn.Module):
+    for name, child in model.named_children():
+        if isinstance(child, (nn.ReLU, nn.Tanh, nn.GELU, nn.ELU, nn.Softplus, nn.CELU, nn.Hardswish)):
+            model.register_module(name, BiRealAct())
+        else:
+            replace_activations_to_bireal(child)
