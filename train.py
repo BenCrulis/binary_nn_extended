@@ -1,3 +1,4 @@
+import os
 import argparse
 
 import yaml
@@ -191,6 +192,11 @@ def main():
     seed = np.random.randint(2**31)
     seed_everything(seed)
 
+    if args.no_wandb:
+        os.environ["WANDB"] = "0"
+    if os.environ.get("WANDB", "") == "":
+        os.environ["WANDB"] = "1"
+
     device = torch.device(f"cuda:{args.device}") if torch.cuda.is_available() else torch.device("cpu")
     print("using device:", device)
 
@@ -249,29 +255,30 @@ def main():
     opt = args.opt
 
     run_name = compute_run_name(args)
-    logger = WandbLogger(project="binary nn extended", name=run_name, config={
-        "args": args,
-        "eval is test set": args.test_set,
-        "model": model_name,
-        "model arch": str(model),
-        "parameters": n_params,
-        "optimizer": opt,
-        "algorithm": algo_name,
-        "lr": lr,
-        "wd": wd,
-        "bs": bs,
-        "total epochs": epochs,
-        "seed": seed,
-        "reconstruction": reconstruction,
-        "augmentation": augment,
-        "fraction train": train_fraction,
-        "binary activations": binary_act,
-        "saturating binary activation": not unsat,
-        "binary weights": binary_weights,
-        "mutation-rate": args.mut_prob,
-        "save": save,
-        "device": str(device),
-    })
+    if os.environ.get("WANDB", "") == "1":
+        logger = WandbLogger(project="binary nn extended", name=run_name, config={
+            "args": args,
+            "eval is test set": args.test_set,
+            "model": model_name,
+            "model arch": str(model),
+            "parameters": n_params,
+            "optimizer": opt,
+            "algorithm": algo_name,
+            "lr": lr,
+            "wd": wd,
+            "bs": bs,
+            "total epochs": epochs,
+            "seed": seed,
+            "reconstruction": reconstruction,
+            "augmentation": augment,
+            "fraction train": train_fraction,
+            "binary activations": binary_act,
+            "saturating binary activation": not unsat,
+            "binary weights": binary_weights,
+            "mutation-rate": args.mut_prob,
+            "save": save,
+            "device": str(device),
+        })
 
     metrics = {
         "loss": LossMetric(loss_fn).to(device),
@@ -295,10 +302,11 @@ def main():
                 clip_weights_for_binary_layers(model)
 
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
-            logger.log({
-                "epoch": epoch,
-                "train/batch loss": l.detach().cpu().item(),
-            }, step=i, commit=False)
+            if os.environ.get("WANDB", "") == "1":
+                logger.log({
+                    "epoch": epoch,
+                    "train/batch loss": l.detach().cpu().item(),
+                }, step=i, commit=False)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
         for metric in metrics.values():
@@ -310,7 +318,8 @@ def main():
         eval_log = {}
         for metric_name, metric in metrics.items():
             eval_log[f"validation/{metric_name}"] = metric.compute().cpu()
-        logger.log(eval_log, step=i, commit=True)
+        if os.environ.get("WANDB", "") == "1":
+            logger.log(eval_log, step=i, commit=True)
 
         print("end of eval")
 
