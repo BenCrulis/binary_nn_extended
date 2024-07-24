@@ -1,0 +1,5 @@
+binary-act: false
+binary-weights: true
+lr: 0.001
+method: dfa
+model: MLPMixer

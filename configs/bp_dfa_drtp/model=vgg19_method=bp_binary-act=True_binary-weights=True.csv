@@ -1,0 +1,5 @@
+binary-act: true
+binary-weights: true
+lr: 0.001
+method: bp
+model: vgg19
