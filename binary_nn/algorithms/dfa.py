@@ -14,11 +14,25 @@ def compute_kernel_size_and_stride(global_error_shape, local_shape):
 
 
 class DFA(ConfigurableMixin):
-    def __init__(self, output_layer, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d)):
+    def __init__(self, output_layer, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), init="normal"):
         super().__init__()
         self.output_layer = output_layer
         self.modules_to_hook = modules_to_hook
+        self.init = init
         self.error = None
+
+    def config(self):
+        return {"DFA backward init": self.init}
+
+    def _init_mat(self, mat):
+        if self.init == "normal":
+            nn.init.normal_(mat)
+        elif self.init == "kaiming_uniform":
+            nn.init.kaiming_uniform_(mat, mode="fan_out")
+        elif self.init == "kaiming_normal":
+            nn.init.kaiming_normal_(mat, mode="fan_out")
+        else:
+            raise ValueError(f"unknown initialization: {self.init}")
 
     def __call__(self, model, x, y, opt: Optimizer, loss_fn):
         s = self
@@ -42,7 +56,7 @@ class DFA(ConfigurableMixin):
                     if len(grad_input.shape) != 3:
                         if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                             backward_mat = torch.empty((n_outputs, grad_input.shape[1]), device=device)
-                            nn.init.normal_(backward_mat)
+                            s._init_mat(backward_mat)
                             m.register_buffer("dfa_backward", backward_mat, persistent=True)
                         layer_error = error @ backward_mat
                         if layer_error.shape != grad_input.shape:
@@ -50,7 +64,7 @@ class DFA(ConfigurableMixin):
                     else:
                         if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                             backward_mat = torch.empty((n_outputs, grad_input.shape[2]), device=device)
-                            nn.init.normal_(backward_mat)
+                            s._init_mat(backward_mat)
                             m.register_buffer("dfa_backward", backward_mat, persistent=True)
                         layer_error = error @ backward_mat
                         layer_error = layer_error[:, None, :].repeat((1, grad_input.shape[1], 1))
@@ -59,7 +73,7 @@ class DFA(ConfigurableMixin):
                     kernel_shape = compute_kernel_size_and_stride(error.shape[2:], grad_input.shape[2:])
                     if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                         backward_mat = torch.empty((grad_input.shape[1], error.shape[1], *kernel_shape), device=device)
-                        nn.init.normal_(backward_mat)
+                        s._init_mat(backward_mat)
                         m.register_buffer("dfa_backward", backward_mat, persistent=True)
                     layer_error = nn.functional.conv2d(error, backward_mat, stride=kernel_shape)
                 assert layer_error.shape == grad_input.shape

@@ -75,6 +75,7 @@ def parse_args():
     # training algorithm
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
     ap.add_argument("--slow-drtp", action="store_true", help="use the slow variant of DRTP")
+    ap.add_argument("--bw-init", type=str, default="normal", help="initialization method for backward matrices")
 
     # learning
     ap.add_argument("--opt", type=str, default="Adam", help="optimizer (default to Adam")
@@ -146,10 +147,10 @@ def load_algorithm(algo_name, model_config, num_classes, args):
     if algo_name == "bp":
         return None
     elif algo_name == "dfa":
-        return DFA(model_config["output_layer"])
+        return DFA(model_config["output_layer"], init=args.bw_init)
     elif algo_name == "drtp":
         algo = DRTP if args.slow_drtp else DRTPFast
-        return algo(model_config["output_layer"], num_classes)
+        return algo(model_config["output_layer"], num_classes, init=args.bw_init)
     elif algo_name == "ls":
         return LS(args.mut_prob, num_classes=num_classes, accuracy_fitness=args.ls_accuracy)
     elif algo_name == "spsa":

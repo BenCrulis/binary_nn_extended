@@ -80,15 +80,26 @@ class DRTP(ConfigurableMixin):
 
 
 class DRTPFast(ConfigurableMixin):
-    def __init__(self, output_layer, num_classes, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d)):
+    def __init__(self, output_layer, num_classes, modules_to_hook=(nn.Linear, nn.Conv2d, nn.Conv1d), init="normal"):
         super().__init__()
         self.n_classes = num_classes
         self.output_layer = output_layer
         self.modules_to_hook = modules_to_hook
+        self.init = init
         self.modules_to_detach = (PreNormResidual, InvertedResidual)
 
     def config(self):
-        return {"DRTP version": "efficient"}
+        return {"DRTP version": "efficient", "DFA backward init": self.init}
+
+    def _init_mat(self, mat):
+        if self.init == "normal":
+            nn.init.normal_(mat)
+        elif self.init == "kaiming_uniform":
+            nn.init.kaiming_uniform_(mat, mode="fan_out")
+        elif self.init == "kaiming_normal":
+            nn.init.kaiming_normal_(mat, mode="fan_out")
+        else:
+            raise ValueError(f"unknown initialization: {self.init}")
 
     def __call__(self, model, x, y, opt: Optimizer, loss_fn):
         model.train()
@@ -113,7 +124,7 @@ class DRTPFast(ConfigurableMixin):
             if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                 channel_dim = input.shape[2] if len(input.shape) == 3 else input.shape[1]
                 backward_mat = torch.empty((n_outputs, channel_dim), device=device)
-                nn.init.normal_(backward_mat)
+                self._init_mat(backward_mat)
                 mod.register_buffer("drtp_backward", backward_mat, persistent=True)
             layer_error = error @ backward_mat
             if len(input.shape) == 3:
