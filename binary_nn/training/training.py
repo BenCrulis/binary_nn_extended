@@ -73,5 +73,6 @@ def train(model: nn.Module,
     #     yield training_epoch(model, dataloader, opt, loss_fn, train_callback=train_callback)
     for epoch in range(num_epochs):
         epoch_iter = iter(
-            training_epoch(model, dataloader, opt, loss_fn, reconstruction, train_callback=train_callback))
+            training_epoch(model, dataloader, opt, loss_fn, reconstruction, train_callback=train_callback,
+                           device=device))
         yield EpochIterator(epoch_iter)
