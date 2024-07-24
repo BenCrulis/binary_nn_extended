@@ -30,6 +30,7 @@ from binary_nn.algorithms.pepita import Pepita
 from binary_nn.algorithms.spsa import SPSA
 from binary_nn.algorithms.spsa_g import SPSAG
 from binary_nn.algorithms.spsa_h import SPSAH
+from binary_nn.datasets.stanforddogs import StanfordDogs, load_dogs
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
 from binary_nn.evaluating.metrics.common.ordered_list import ordered_list, wandb_table_layers
@@ -63,6 +64,7 @@ def parse_args():
     ap.add_argument("--device", type=int, default=0, help="gpu device index")
 
     # dataset config
+    ap.add_argument("--dogs", action="store_true", help="use Stanford Dogs dataset")
     ap.add_argument("--mnist", action="store_true", help="use MNIST dataset")
     ap.add_argument("--fashion-mnist", action="store_true", help="use FashionMNIST dataset")
     ap.add_argument("--cifar10", action="store_true", help="use CIFAR10 dataset")
@@ -264,7 +266,11 @@ def main():
                           transform=Compose([ToTensor(), Normalize((0.49139968, 0.48215841, 0.44653091),
                                                                    (0.24703223, 0.24348513, 0.26158784))]),
                           download=True)
+    elif args.dogs:
+        print("Using Stanford Dogs dataset")
+        num_classes, ds, test_ds = load_dogs(ds_config, augment=augment)
     else:
+        print('Using ImageNette dataset')
         num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
     sample = ds[0][0][None, ...]
 
@@ -291,7 +297,7 @@ def main():
         Biprop(model, args.biprop)
 
     n_params = count_parameters(model)
-    print(f"using model {model_name} with {n_params}")
+    print(f"using model {model_name} with {n_params} parameters")
 
     model_config = config["model_config"][("ae" + model_name) if reconstruction else model_name]
 
