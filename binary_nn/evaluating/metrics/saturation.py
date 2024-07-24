@@ -32,10 +32,11 @@ class Saturation(Metric):
         self.sum_buffer = 0
         self.total_buffer = 0
 
+    @torch.no_grad()
     def saturation_hook(self, mod, input, output):
         input = input[0] if isinstance(input, tuple) else input
-        self.sum_buffer += (torch.abs(input) >= self.threshold).sum()
-        self.total_buffer += input.numel()
+        self.sum_buffer += (torch.abs(input) >= self.threshold).sum().detach().clone()
+        self.total_buffer += input.numel().clone()
 
     def reset_buffers(self):
         self.sum_buffer = 0
