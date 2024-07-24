@@ -106,6 +106,7 @@ def parse_args():
 
     # logging
     ap.add_argument("--no-wandb", action="store_true")
+    ap.add_argument("--tags", nargs="*", help="wandb tags")
 
     return ap.parse_args()
 
@@ -319,7 +320,7 @@ def main():
             "device": str(device),
             "metric saturation threshold": metric_saturation_threshold,
             **(algo.config() if hasattr(algo, "config") else {}),
-        })
+        }, tags=args.tags)
 
     metrics = {
         "loss": LossMetric(loss_fn).to(device),
