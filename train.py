@@ -77,7 +77,7 @@ def parse_args():
     ap.add_argument("--remove-skips", action="store_true")
 
     # training algorithm
-    ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
+    ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp, hsic, pepita}")
     ap.add_argument("--slow-drtp", action="store_true", help="use the slow variant of DRTP")
     ap.add_argument("--bw-init", type=str, default="normal", help="initialization method for backward matrices")
 
