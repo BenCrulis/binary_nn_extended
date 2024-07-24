@@ -378,8 +378,10 @@ def main():
         gradnorm_metric.reset()
         # saturation_metric.reset()
         # training loop
-        for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
+        batch_pbar = tqdm(epoch_iterator)
+        for iteration, l, x, y, y_pred in batch_pbar:
             i += 1
+            batch_pbar.set_description(f"l: {l.item():.5f}")
 
             train_log = {
                     "epoch": epoch,
