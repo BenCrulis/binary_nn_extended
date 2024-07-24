@@ -37,6 +37,7 @@ from binary_nn.models.common.binary.binarization import apply_binarization_param
     clip_weights_for_binary_layers, replace_activations_to_bireal
 from binary_nn.models.common.utils import count_parameters
 from binary_nn.models.fullyconnected import FullyConnected
+from binary_nn.models.tweaks.remove_skips import remove_skips
 from binary_nn.training.training import train
 from binary_nn.models import autoencoders as ae
 
@@ -69,6 +70,7 @@ def parse_args():
     ap.add_argument("--unsat", action="store_true")
     ap.add_argument("--bireal-act", action="store_true")
     ap.add_argument("--biprop", nargs="?", const=0.2, type=float)
+    ap.add_argument("--remove-skips", action="store_true")
 
     # training algorithm
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
@@ -262,6 +264,9 @@ def main():
     else:
         model = load_model(model_name, num_classes, args)
 
+    if args.remove_skips:
+        remove_skips(model)
+
     if args.biprop is not None:
         Biprop(model, args.biprop)
 
@@ -307,6 +312,7 @@ def main():
             "saturating binary activation": not unsat,
             "binary weights": binary_weights,
             "mutation-rate": args.mut_prob,
+            "removed skip connexions": args.remove_skips,
             "save": save,
             "device": str(device),
             "metric saturation threshold": metric_saturation_threshold,
