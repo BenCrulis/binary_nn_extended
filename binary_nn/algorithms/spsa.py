@@ -65,7 +65,7 @@ class SPSA(ConfigurableMixin):
         opt.zero_grad()
         mod.load_state_dict(old_state)
         for p, pert in zip(mod.parameters(), perturbation):
-            p.grad = pert*gain
+            p.grad = pert*gain  # we can multiply instead of dividing because it is the same when using Rademacher
         opt.step()
 
         return l, y_pred
