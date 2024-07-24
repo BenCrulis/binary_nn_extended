@@ -151,6 +151,9 @@ def main():
     with open(config_path, mode="r") as file:
         config = yaml.safe_load(file)
 
+    with open(Path("ds_config.yaml"), mode="r") as file:
+        ds_config = yaml.safe_load(file)
+
     print(config)
 
     save = args.save
@@ -174,7 +177,7 @@ def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     print("using device:", device)
 
-    num_classes, ds, test_ds = load_imagenette(config, augment=augment)
+    num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
 
     algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes, args)
 

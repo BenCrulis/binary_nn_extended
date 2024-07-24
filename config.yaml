@@ -1,7 +1,3 @@
-datasets:
-  imagenette:
-    path: "C:\\data\\datasets\\imagenette2-320"
-
 model_config:
   MobileNetV2:
     output_layer: classifier.1

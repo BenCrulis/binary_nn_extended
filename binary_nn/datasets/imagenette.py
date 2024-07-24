@@ -7,7 +7,7 @@ from binary_nn.datasets.commons import default_train_transform, default_test_tra
 
 
 def load_imagenette(config, augment=False):
-    imagenette_path = Path(config["datasets"]["imagenette"]["path"]).absolute()
+    imagenette_path = Path(config["imagenette"]["path"]).absolute()
     if augment:
         train_transforms = [transforms.RandomHorizontalFlip(),
                             transforms.RandomRotation(20),
