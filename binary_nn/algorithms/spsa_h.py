@@ -72,6 +72,7 @@ class SPSAH(ConfigurableMixin):
             with torch.enable_grad():
                 out = mod(input)
                 saved_out = out
+            handle = mod.register_forward_hook(forward_hook)
             c = self.c / out.numel()
             pert = self._generate_perturbation(out.shape, device=out.device)
             perturbation = pert
@@ -82,7 +83,7 @@ class SPSAH(ConfigurableMixin):
 
         handle = mod.register_forward_hook(forward_hook)
         with torch.no_grad():
-            y_pred_pert = model(x)
+            y_pred_pert = model(ExpendableTensor(x))
 
         l_plus = loss_fn(y_pred_pert[:len(x)], y)
         l_minus = loss_fn(y_pred_pert[len(x):], y)
@@ -93,7 +94,7 @@ class SPSAH(ConfigurableMixin):
         opt.zero_grad()
         saved_out.backward(perturbation*gain)
         opt.step()
-
+        handle.remove()
         return l, y_pred
 
 
