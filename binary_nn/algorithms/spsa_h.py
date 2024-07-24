@@ -29,7 +29,7 @@ class SPSAH(ConfigurableMixin):
         self.distribution = distribution
 
     def config(self):
-        return {"SPSA-h distribution": self.distribution}
+        return {"spsa-c": self.c, "SPSA-h distribution": self.distribution}
 
     def _generate_perturbation(self, shape, device=None):
         if self.distribution == "rademacher":
