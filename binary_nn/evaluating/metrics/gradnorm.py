@@ -42,7 +42,7 @@ class GradNorm(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, *args, **kwargs) -> None:
-        norms = torch.stack([computes_grad_norm(m) for m in self.module_list])
+        norms = torch.stack([computes_grad_norm(m) for m in self.module_list]).to(self.sum.device)
         self.sum = self.sum + norms
         self.total += 1
 
