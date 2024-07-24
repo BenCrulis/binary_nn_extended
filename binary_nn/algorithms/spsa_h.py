@@ -1,5 +1,4 @@
-import gc
-from copy import deepcopy
+import math
 
 import torch
 from torch import nn
@@ -73,7 +72,7 @@ class SPSAH(ConfigurableMixin):
                 out = mod(input)
                 saved_out = out
             handle = mod.register_forward_hook(forward_hook)
-            c = self.c / out.numel()
+            c = self.c / math.sqrt(out.numel())
             pert = self._generate_perturbation(out.shape, device=out.device)
             perturbation = pert
             out_pos = out + pert*c
