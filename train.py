@@ -15,6 +15,7 @@ from torchmetrics import Accuracy
 
 from torchvision.models.mobilenet import MobileNetV2, MobileNetV3
 from torchvision.models.vgg import vgg19, vgg19_bn, vgg16_bn
+from mlp_mixer_pytorch import MLPMixer
 
 from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP
@@ -39,6 +40,7 @@ def parse_args():
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--train-fraction", type=float, default=0.9)
     ap.add_argument("--reconstruction", action="store_true")
+    ap.add_argument("--augment", action="store_true", help="use data augmentation")
 
     # model related options
     ap.add_argument("--model", default="MobileNetV2")
@@ -50,8 +52,9 @@ def parse_args():
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
 
     # learning
-    ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--bs", type=int, default=10)
+    ap.add_argument("--lr", type=float, default=1e-3, help="learning rate")
+    ap.add_argument("--wd", type=float, default=0.0, help="weight decay")
+    ap.add_argument("--bs", type=int, default=10, help="batch size")
     ap.add_argument("--epochs", type=int, default=80)
 
     # checkpoint related
@@ -75,6 +78,8 @@ def load_model(model_name, num_classes):
         model = vgg19_bn()
         model.classifier[-1] = nn.Linear(4096, num_classes)
         return model
+    elif model_name == "MLPMixer":
+        return MLPMixer(image_size=224, channels=3, patch_size=16, dim=512, depth=12, num_classes=num_classes)
     else:
         raise ValueError(f"unknown model: {model_name}")
 
@@ -133,10 +138,12 @@ def main():
     autosave = args.autosave
 
     reconstruction = args.reconstruction
+    augment = args.augment
     train_fraction = args.train_fraction
     algo_name = args.method
     model_name = args.model
     lr = args.lr
+    wd = args.wd
     bs = args.bs
     epochs = args.epochs
     binary_weights = args.binary_weights
@@ -148,7 +155,7 @@ def main():
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     print("using device:", device)
 
-    num_classes, ds, test_ds = load_imagenette(config, augment=False)
+    num_classes, ds, test_ds = load_imagenette(config, augment=augment)
 
     algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes)
 
@@ -180,13 +187,16 @@ def main():
     run_name = compute_run_name(args)
     logger = WandbLogger(project="binary nn extended", name=run_name, config={
         "model": model_name,
+        "parameters": n_params,
         "optimizer": opt,
         "algorithm": algo_name,
         "lr": lr,
+        "wd": wd,
         "bs": bs,
         "total epochs": epochs,
         "seed": seed,
         "reconstruction": reconstruction,
+        "augmentation": augment,
         "fraction train": train_fraction,
         "binary activations": binary_act,
         "saturating binary activation": not unsat,
@@ -207,7 +217,7 @@ def main():
     i = 0
     for epoch, epoch_iterator in enumerate(train(model, train_ds, opt, loss_fn, reconstruction=reconstruction,
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo,
-                                                 device=device)):
+                                                 device=device, opt_kwargs={"weight_decay": wd})):
         print(f"epoch {epoch}")
         # training loop
         for iteration, l, x, y, y_pred in tqdm(epoch_iterator):
