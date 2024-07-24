@@ -10,13 +10,13 @@ import pandas as pd
 
 
 def convert_val(val):
-    if isinstance(val, (pd.BooleanDtype, np.bool_)):
+    if isinstance(val, (pd.BooleanDtype, np.bool_, bool)):
         return bool(val)
-    elif isinstance(val, (pd.Float32Dtype, pd.Float64Dtype, np.float_)):
+    elif isinstance(val, (pd.Float32Dtype, pd.Float64Dtype, np.float_, float)):
         return float(val)
     elif isinstance(val, (pd.Int8Dtype, pd.Int16Dtype, pd.Int32Dtype, pd.Int64Dtype,
                           pd.UInt8Dtype, pd.UInt16Dtype, pd.UInt32Dtype, pd.UInt64Dtype,
-                          np.int_)):
+                          np.int_, np.int64, int)):
         return int(val)
     return val
 
