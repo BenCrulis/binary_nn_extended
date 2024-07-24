@@ -65,6 +65,7 @@ def parse_args():
     ap.add_argument("--method", type=str, default="bp", help="training algorithm, one of {bp, dfa, drtp}")
 
     # learning
+    ap.add_argument("--opt", type=str, default="Adam", help="optimizer (default to Adam")
     ap.add_argument("--lr", type=float, default=1e-3, help="learning rate")
     ap.add_argument("--wd", type=float, default=0.0, help="weight decay")
     ap.add_argument("--bs", type=int, default=10, help="batch size")
@@ -245,7 +246,7 @@ def main():
         loss_fn = torch.nn.functional.mse_loss
     else:
         loss_fn = torch.nn.functional.cross_entropy
-    opt = "Adam"
+    opt = args.opt
 
     run_name = compute_run_name(args)
     logger = WandbLogger(project="binary nn extended", name=run_name, config={
