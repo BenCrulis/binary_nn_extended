@@ -1,1 +1,22 @@
-imagenette_path: "C:\\data\\datasets\\imagenette2-320"
+datasets:
+  imagenette:
+    path: "C:\\data\\datasets\\imagenette2-320"
+
+model_config:
+  MobileNetV2:
+    output_layer: classifier.1
+    prevent_binarization:
+      - features.0.0
+      - classifier.1
+
+  vgg16:
+    output_layer: classifier.6
+    prevent_binarization:
+      - features.0
+      - classifier.6
+
+  vgg19:
+    output_layer: classifier.6
+    prevent_binarization:
+      - features.0
+      - classifier.6

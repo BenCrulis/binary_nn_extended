@@ -7,23 +7,25 @@ from tqdm import tqdm
 
 
 def train_iteration(model, x, y, opt: Optimizer, loss_fn):
+    model.train()
     y_pred = model(x)
     l = loss_fn(y_pred, y)
     opt.zero_grad()
     l.backward()
     opt.step()
-
     return l, y_pred
 
 
-def training_epoch(model, dataloader, opt: Optimizer, loss_fn, device=None):
+def training_epoch(model, dataloader, opt: Optimizer, loss_fn, train_callback=None, device=None):
+    if train_callback is None:
+        train_callback = train_iteration
 
     for i, batch in enumerate(dataloader):
         x, y = batch
         x = x.to(device)
         y = y.to(device)
 
-        l, y_pred = train_iteration(model, x, y, opt, loss_fn)
+        l, y_pred = train_callback(model, x, y, opt, loss_fn)
 
         yield i, l, x, y, y_pred
 
@@ -36,7 +38,10 @@ def train(model: nn.Module,
           opt_kwargs=None,
           num_epochs=10,
           batch_size=10,
+          train_callback=None,
           device=None):
+    if train_callback is None:
+        train_callback = train_iteration
     model = model.to(device)
 
     if opt_kwargs is None:
@@ -44,11 +49,21 @@ def train(model: nn.Module,
     if isinstance(optimizer, str):
         opt_cls = getattr(torch.optim, optimizer)
         opt = opt_cls(model.parameters(), lr=lr, **opt_kwargs)
-    elif hasattr(optimizer, "step"):
+    else:
         opt = optimizer
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
+    epoch_iter = iter(training_epoch(model, dataloader, opt, loss_fn, train_callback=train_callback))
+
+    class EpochIterator():
+        def __len__(self):
+            return len(dataloader)
+
+        def __iter__(self):
+            return epoch_iter
+
+    # for epoch in range(num_epochs):
+    #     yield training_epoch(model, dataloader, opt, loss_fn, train_callback=train_callback)
     for epoch in range(num_epochs):
-        for i, l, x, y, y_pred in training_epoch(model, dataloader, opt, loss_fn):
-            yield epoch, i, l, x, y, y_pred
+        yield EpochIterator()
