@@ -44,7 +44,7 @@ def parse_args():
     # general options
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--train-fraction", type=float, default=0.9)
-    ap.add_argument("--test-set", type=bool, action="store_true",
+    ap.add_argument("--test-set", action="store_true",
                     help="use the test set of the dataset instead of splitting the train set into train/validation set")
     ap.add_argument("--reconstruction", action="store_true")
     ap.add_argument("--augment", action="store_true", help="use data augmentation")
