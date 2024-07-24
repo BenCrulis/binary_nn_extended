@@ -28,6 +28,7 @@ from binary_nn.algorithms.hsic import HSIC
 from binary_nn.algorithms.local_search import LS
 from binary_nn.algorithms.pepita import Pepita
 from binary_nn.algorithms.spsa import SPSA
+from binary_nn.algorithms.spsa_g import SPSAG
 from binary_nn.algorithms.spsa_h import SPSAH
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
@@ -171,6 +172,8 @@ def load_algorithm(algo_name, model_config, num_classes, args):
         return SPSA(args.spsa_c)
     elif algo_name == "spsah":
         return SPSAH(args.spsa_c)
+    elif algo_name == "spsag":
+        return SPSAG(num_classes, args.spsa_c)
     else:
         raise ValueError(f"unknown algorithm: {algo_name}")
 
