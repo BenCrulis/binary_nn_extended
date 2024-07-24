@@ -48,7 +48,8 @@ class SPSAG(ConfigurableMixin):
         n_outputs = y.shape[-1]
         if hasattr(mod, "drtp_backward"):
             return mod.drtp_backward
-        if isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+        if isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
+                            nn.LayerNorm)):
             channel_dim = x.shape[1]
             backward_mat = torch.empty((n_outputs, channel_dim), device=device)
             self._init_mat(backward_mat)
@@ -74,7 +75,8 @@ class SPSAG(ConfigurableMixin):
                 pert = signal @ bw
                 if isinstance(mod, nn.Linear):
                     pert = pert.view((len(x), *[1 for x in range(len(x.shape) - 2)], -1))
-                elif isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+                elif isinstance(mod, (nn.Conv1d, nn.Conv2d, nn.Conv3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
+                                      nn.LayerNorm)):
                     pert = pert.view((len(x), -1, *[1 for x in range(len(x.shape) - 2)]))
                 pert = pert.expand(x.shape)
             pass
