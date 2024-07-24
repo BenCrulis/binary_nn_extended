@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn.utils.parametrize import register_parametrization
 
 from binary_nn.models.common.binary.modules import Sign
+from binary_nn.models.common.utils import map_layers_generic
 
 
 def apply_binarization_parametrization(model: nn.Module, spared=None, apply_to_bias=False):
@@ -28,3 +29,11 @@ def clip_weights_for_binary_layers(model: nn.Module, apply_to_bias=False):
                 if apply_to_bias and mod.bias is not None:
                     b = mod.parametrizations.bias.original
                     b.data.clip_(-1.0, 1.0)
+
+
+def replace_activations_to_sign(model: nn.Module):
+    for name, child in model.named_children():
+        if isinstance(child, (nn.ReLU, nn.Tanh)):
+            model.register_module(name, Sign())
+        else:
+            replace_activations_to_sign(child)

@@ -70,7 +70,6 @@ def get_module_attributes(module: nn.Module):
                 l.append((module, attr, val))
                 mem.append(val)
                 l.extend(get_module_attributes(val))
-
     return l
 
 
@@ -84,6 +83,8 @@ def map_layers_generic(module, mapping):
                 setattr(mod, attr, new_module)
             elif isinstance(attr, int):
                 mod[attr] = new_module
+        if isinstance(child, nn.Module):
+            map_layers_generic(child, mapping)
 
 
 def execute_model_from_layer(model: nn.Module, layer, input, sample):

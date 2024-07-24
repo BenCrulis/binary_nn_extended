@@ -16,14 +16,17 @@ def train_iteration(model, x, y, opt: Optimizer, loss_fn):
     return l, y_pred
 
 
-def training_epoch(model, dataloader, opt: Optimizer, loss_fn, train_callback=None, device=None):
+def training_epoch(model, dataloader, opt: Optimizer, loss_fn, reconstruction=False, train_callback=None, device=None):
     if train_callback is None:
         train_callback = train_iteration
 
     for i, batch in enumerate(dataloader):
         x, y = batch
         x = x.to(device)
-        y = y.to(device)
+        if reconstruction:
+            y = x
+        else:
+            y = y.to(device)
 
         l, y_pred = train_callback(model, x, y, opt, loss_fn)
 
@@ -38,6 +41,7 @@ def train(model: nn.Module,
           opt_kwargs=None,
           num_epochs=10,
           batch_size=10,
+          reconstruction=False,
           train_callback=None,
           device=None):
     if train_callback is None:
@@ -54,7 +58,7 @@ def train(model: nn.Module,
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    epoch_iter = iter(training_epoch(model, dataloader, opt, loss_fn, train_callback=train_callback))
+    epoch_iter = iter(training_epoch(model, dataloader, opt, loss_fn, reconstruction, train_callback=train_callback))
 
     class EpochIterator():
         def __len__(self):

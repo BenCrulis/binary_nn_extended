@@ -2,13 +2,17 @@ import argparse
 
 import yaml
 
+from pathlib import Path
+
+import numpy as np
+
 from torch import nn
 import torch.nn.functional
 from torch.utils.data import random_split
 
+import torchmetrics
 from torchmetrics import Accuracy
 
-import torchvision.datasets
 from torchvision.models.mobilenet import MobileNetV2, MobileNetV3
 from torchvision.models.vgg import vgg19, vgg19_bn, vgg16_bn
 
@@ -16,10 +20,16 @@ from binary_nn.algorithms.dfa import DFA
 from binary_nn.algorithms.drtp import DRTP
 from binary_nn.datasets.imagenette import load_imagenette
 from binary_nn.evaluating.classification import eval_classification, eval_classification_iterator
+from binary_nn.evaluating.metrics.lossMetric import LossMetric
+from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign
 from binary_nn.models.common.utils import count_parameters
 from binary_nn.training.training import train
+from binary_nn.models import autoencoders as ae
 
 from tqdm import tqdm
+
+from utils.logging.wandblogger import WandbLogger
+from utils.seed import seed_everything
 
 
 def parse_args():
@@ -27,6 +37,7 @@ def parse_args():
     # general options
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--train-fraction", type=float, default=0.9)
+    ap.add_argument("--reconstruction", action="store_true")
 
     # model related options
     ap.add_argument("--model", default="MobileNetV2")
@@ -40,6 +51,10 @@ def parse_args():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--bs", type=int, default=10)
     ap.add_argument("--epochs", type=int, default=80)
+
+    # checkpoint related
+    ap.add_argument("--save", action="store_true", help="save checkpoints")
+    ap.add_argument("--autosave", action="store_true", help="imply --save, auto save at the end of every epoch")
 
     # logging
     ap.add_argument("--no-wandb", action="store_true")
@@ -62,6 +77,20 @@ def load_model(model_name, num_classes):
         raise ValueError(f"unknown model: {model_name}")
 
 
+def load_reconstruction_model(model_name):
+    if model_name == "vgg11":
+        model = ae.vgg.VGGAutoEncoder(ae.vgg.get_configs("vgg11"))
+    elif model_name == "vgg13":
+        model = ae.vgg.VGGAutoEncoder(ae.vgg.get_configs("vgg13"))
+    elif model_name == "vgg16":
+        model = ae.vgg.VGGAutoEncoder(ae.vgg.get_configs("vgg16"))
+    elif model_name == "vgg19":
+        model = ae.vgg.VGGAutoEncoder(ae.vgg.get_configs("vgg19"))
+    else:
+        raise ValueError(f"unknown model: {model_name}")
+    return model
+
+
 def load_algorithm(algo_name, model_config, num_classes):
     if algo_name == "bp":
         return None
@@ -75,6 +104,10 @@ def load_algorithm(algo_name, model_config, num_classes):
 
 def main():
     args = parse_args()
+
+    if args.autosave:
+        args.save = True
+
     print(args)
 
     config_path = args.config
@@ -83,12 +116,20 @@ def main():
 
     print(config)
 
+    save = args.save
+    autosave = args.autosave
+
+    reconstruction = args.reconstruction
     train_fraction = args.train_fraction
     algo_name = args.method
     model_name = args.model
     lr = args.lr
     bs = args.bs
     epochs = args.epochs
+    binary_weights = args.binary_weights
+    binary_act = args.binary_act
+    seed = np.random.randint(2**31)
+    seed_everything(seed)
 
     num_classes, ds, test_ds = load_imagenette(config, augment=False)
 
@@ -98,26 +139,60 @@ def main():
 
     print(num_classes)
 
-    model = load_model(model_name, num_classes)
+    if reconstruction:
+        model = load_reconstruction_model(model_name)
+    else:
+        model = load_model(model_name, num_classes)
 
     n_params = count_parameters(model)
     print(f"using model {model_name} with {n_params}")
 
-    loss_fn = torch.nn.functional.cross_entropy
+    model_config = config["model_config"][("ae" + model_name) if reconstruction else model_name]
+
+    if binary_act:
+        replace_activations_to_sign(model)
+    if binary_weights:
+        apply_binarization_parametrization(model, model_config["prevent_binarization"])
+
+    if reconstruction:
+        loss_fn = torch.nn.functional.mse_loss
+    else:
+        loss_fn = torch.nn.functional.cross_entropy
     opt = "Adam"
 
-    for epoch, epoch_iterator in enumerate(train(model, train_ds, opt, loss_fn,
+    logger = WandbLogger(project="binary nn extended")
+
+    metrics = {
+        "loss": LossMetric(loss_fn),
+        "accuracy": Accuracy("multiclass", num_classes=num_classes),
+        "precision": torchmetrics.Precision("multiclass", num_classes=num_classes),
+        "recall": torchmetrics.Recall("multiclass", num_classes=num_classes)
+    }
+
+    i = 0
+    for epoch, epoch_iterator in enumerate(train(model, train_ds, opt, loss_fn, reconstruction=reconstruction,
                                                  lr=lr, batch_size=bs, num_epochs=epochs, train_callback=algo)):
         print(f"epoch {epoch}")
         # training loop
         for i, l, x, y, y_pred in tqdm(epoch_iterator):
+            i += 1
             # print(f"epoch {epoch}, iteration {i}: loss = {l.item()}")
-            pass
+            logger.log({
+                "epoch": epoch,
+                "train/batch loss": l,
+            }, step=i)
         print(f"end of epoch {epoch}")
         print("evaluating on validation set")
-        for r in tqdm(eval_classification_iterator(model, validation_ds,
-                                                   {"accuracy": Accuracy("multiclass", num_classes=num_classes)})):
-            print(r)
+        for metric in metrics.values():
+            metric.reset()
+        pbar = tqdm(eval_classification_iterator(model, validation_ds, metrics, batch_size=bs))
+        for r in pbar:
+            pbar.set_description(f"{r}")
+
+        eval_log = {}
+        for metric_name, metric in metrics.items():
+            eval_log[f"validation/{metric_name}"] = metric.compute()
+        logger.log(eval_log, step=i)
 
         print("end of eval")
 

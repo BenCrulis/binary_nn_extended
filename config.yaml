@@ -20,3 +20,15 @@ model_config:
     prevent_binarization:
       - features.0
       - classifier.6
+
+  aevgg16:
+    output_layer: decoder.conv5.2 DecoderLayer.layer.2
+    prevent_binarization:
+      - encoder.conv1.0 EncoderLayer.layer.0
+      - decoder.conv5.2 DecoderLayer.layer.2
+
+  aevgg19:
+    output_layer: decoder.conv5.2 DecoderLayer.layer.2
+    prevent_binarization:
+      - encoder.conv1.0 EncoderLayer.layer.0
+      - decoder.conv5.2 DecoderLayer.layer.2
