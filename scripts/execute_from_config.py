@@ -1,4 +1,6 @@
 import os
+import signal
+import time
 
 from pathlib import Path
 
@@ -25,6 +27,17 @@ ap.add_argument("args", nargs="*")
 
 args = ap.parse_args()
 
+stop = False
+
+
+def handler(signum, frame):
+    global stop
+    stop = True
+    print("SIGINT received, interrupting execution")
+
+
+signal.signal(signal.SIGINT, handler)
+
 for i in range(args.repeat):
     for config_path in args.config:
         with open(config_path, mode="r") as f:
@@ -34,6 +47,14 @@ for i in range(args.repeat):
 
             cmd = f"{PYTHON} {SCRIPT} {config_args}" + (" " + " ".join(args.args) if args.args else "")
             print(f"executing \"{cmd}\"")
-            os.system(cmd)
+            exitcode = os.system(cmd)
+            print(f"exitcode is {exitcode}")
             print()
             pass
+    print("end of iteration, waiting 1s")
+    time.sleep(1)
+    if stop:
+        print("stopping...")
+        break
+
+print("done.")
