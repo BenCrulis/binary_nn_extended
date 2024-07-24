@@ -36,7 +36,7 @@ def clip_weights_for_binary_layers(model: nn.Module, apply_to_bias=False):
 
 def replace_activations_to_sign(model: nn.Module, unsaturating=False):
     for name, child in model.named_children():
-        if isinstance(child, (nn.ReLU, nn.Tanh)):
+        if isinstance(child, (nn.ReLU, nn.Tanh, nn.GELU, nn.ELU, nn.Softplus, nn.CELU, nn.Hardswish)):
             model.register_module(name, SignUnsat() if unsaturating else Sign())
         else:
             replace_activations_to_sign(child, unsaturating)

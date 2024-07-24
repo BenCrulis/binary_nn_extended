@@ -38,12 +38,16 @@ class DRTP(ConfigurableMixin):
                         error = s.error
                         n_outputs = error.shape[-1]
                         if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
-                            backward_mat = torch.empty((n_outputs, grad_input.shape[1]), device=device)
+                            channel_dim = grad_input.shape[2] if len(grad_input.shape) == 3 else grad_input.shape[1]
+                            backward_mat = torch.empty((n_outputs, channel_dim), device=device)
                             nn.init.normal_(backward_mat)
                             m.register_buffer("drtp_backward", backward_mat, persistent=True)
                         layer_error = error @ backward_mat
-                        if layer_error.shape != grad_input.shape:
-                            layer_error = layer_error[..., None, None].repeat((1, 1, *grad_input.shape[-2:]))
+                        if len(grad_input.shape) == 3:
+                            layer_error = layer_error[:, None, :].expand(grad_input.shape)
+                        elif len(grad_input.shape) == 4:
+                            layer_error = layer_error[:, :, None, None].expand(grad_input.shape)
+                        assert layer_error.shape == grad_input.shape
                         return layer_error,
                 hook = Hook()
                 handle = module.register_forward_hook(hook.forward_hook)
