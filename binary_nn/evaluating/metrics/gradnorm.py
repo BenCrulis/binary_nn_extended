@@ -8,10 +8,10 @@ from torch.nn.utils.parametrize import ParametrizationList
 from torchmetrics import Metric
 
 
-def computes_grad_norm(mod: nn.Module):
+def computes_grad_norm(mod: nn.Module, device=None):
     p = [p.grad.flatten() for p in mod.parameters() if p.grad is not None]
     if len(p) == 0:
-        return torch.tensor([0.0])
+        return torch.tensor([0.0], device=device)[0]
     p = torch.cat(p)
     return torch.linalg.vector_norm(p)
 
@@ -42,7 +42,8 @@ class GradNorm(Metric):
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, *args, **kwargs) -> None:
-        norms = torch.stack([computes_grad_norm(m) for m in self.module_list]).to(self.sum.device)
+        norms = torch.stack([computes_grad_norm(m, device=self.sum.device)
+                             for m in self.module_list]).to(self.sum.device)
         self.sum = self.sum + norms
         self.total += 1
 
