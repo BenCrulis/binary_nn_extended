@@ -39,7 +39,7 @@ class DFA(ConfigurableMixin):
                 error = s.error
                 if len(error.shape) <= 2:
                     n_outputs = error.shape[-1]
-                    if len(grad_input.shape) == 2:
+                    if len(grad_input.shape) != 3:
                         if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                             backward_mat = torch.empty((n_outputs, grad_input.shape[1]), device=device)
                             nn.init.normal_(backward_mat)
@@ -47,7 +47,7 @@ class DFA(ConfigurableMixin):
                         layer_error = error @ backward_mat
                         if layer_error.shape != grad_input.shape:
                             layer_error = layer_error[..., None, None].repeat((1, 1, *grad_input.shape[-2:]))
-                    elif len(grad_input.shape) == 3:
+                    else:
                         if backward_mat is None:  # if the backward shortcut doesn't exist for this layer, create it
                             backward_mat = torch.empty((n_outputs, grad_input.shape[2]), device=device)
                             nn.init.normal_(backward_mat)
