@@ -10,6 +10,8 @@ from torchmetrics import Metric
 
 def computes_grad_norm(mod: nn.Module):
     p = [p.grad.flatten() for p in mod.parameters() if p.grad is not None]
+    if len(p) == 0:
+        return torch.tensor([0.0])
     p = torch.cat(p)
     return torch.linalg.vector_norm(p)
 
