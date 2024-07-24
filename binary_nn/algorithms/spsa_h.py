@@ -53,37 +53,43 @@ class SPSAH(ConfigurableMixin):
 
         i = torch.randint(0, len(candidate_modules), (1,)).item()
         mod = candidate_modules[i]
+        c = None
 
-        perturbation = [None]
-        saved_out = [None]
-        handle = [None]
+        perturbation = None
+        saved_out = None
+        handle = None
 
         def forward_hook(mod, input, output):
-            handle[0].remove()
+            nonlocal c
+            nonlocal perturbation
+            nonlocal saved_out
+            nonlocal handle
+            handle.remove()
             input = input[0] if isinstance(input, tuple) else input
             input = input.detach()
             with torch.enable_grad():
                 out = mod(input)
-                saved_out[0] = out
-
+                saved_out = out
+            c = self.c / out.numel()
             pert = self._generate_perturbation(out.shape, device=out.device)
-            perturbation[0] = pert
-            out_pos = out + pert*self.c
-            out_neg = out - pert*self.c
+            perturbation = pert
+            out_pos = out + pert*c
+            out_neg = out - pert*c
             new_out = torch.cat([out_pos, out_neg], dim=0)
             return ExpendableTensor(new_out)
 
-        handle[0] = mod.register_forward_hook(forward_hook)
-        y_pred_pert = model(x)
+        handle = mod.register_forward_hook(forward_hook)
+        with torch.no_grad():
+            y_pred_pert = model(x)
 
         l_plus = loss_fn(y_pred_pert[:len(x)], y)
         l_minus = loss_fn(y_pred_pert[len(x):], y)
 
         # compute the final gradient
-        gain = (l_plus - l_minus) / (2.0 * self.c)
+        gain = (l_plus - l_minus) / (2.0 * c)
 
         opt.zero_grad()
-        saved_out[0].backward(perturbation[0]*gain)
+        saved_out.backward(perturbation*gain)
         opt.step()
 
         return l, y_pred
