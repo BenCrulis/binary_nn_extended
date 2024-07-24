@@ -1,7 +1,7 @@
 program: binary_nn/train.py
 method: grid
 command:
-  - ../venv/bin/python3
+  - ./venv/bin/python3
   - train.py
   - --augment
   - --method
