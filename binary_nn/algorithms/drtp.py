@@ -89,7 +89,7 @@ class DRTPFast(ConfigurableMixin):
         self.modules_to_detach = (PreNormResidual, InvertedResidual)
 
     def config(self):
-        return {"DRTP version": "efficient", "DFA backward init": self.init}
+        return {"DRTP version": "efficient", "DRTP backward init": self.init}
 
     def _init_mat(self, mat):
         if self.init == "normal":
