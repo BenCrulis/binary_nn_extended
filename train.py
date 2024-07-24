@@ -12,9 +12,11 @@ from torch.utils.data import random_split
 
 import torchmetrics
 from torchmetrics import Accuracy
+from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
 
 from torchvision.models.mobilenet import MobileNetV2, MobileNetV3
 from torchvision.models.vgg import vgg19, vgg19_bn, vgg16_bn
+from torchvision.transforms import ToTensor, Compose, Normalize
 from mlp_mixer_pytorch import MLPMixer
 
 from binary_nn.algorithms.dfa import DFA
@@ -27,6 +29,7 @@ from binary_nn.evaluating.metrics.lossMetric import LossMetric
 from binary_nn.models.common.binary.binarization import apply_binarization_parametrization, replace_activations_to_sign, \
     clip_weights_for_binary_layers
 from binary_nn.models.common.utils import count_parameters
+from binary_nn.models.fullyconnected import FullyConnected
 from binary_nn.training.training import train
 from binary_nn.models import autoencoders as ae
 
@@ -41,9 +44,16 @@ def parse_args():
     # general options
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--train-fraction", type=float, default=0.9)
+    ap.add_argument("--test-set", type=bool, action="store_true",
+                    help="use the test set of the dataset instead of splitting the train set into train/validation set")
     ap.add_argument("--reconstruction", action="store_true")
     ap.add_argument("--augment", action="store_true", help="use data augmentation")
     ap.add_argument("--device", type=int, default=0, help="gpu device index")
+
+    # dataset config
+    ap.add_argument("--mnist", action="store_true", help="use MNIST dataset")
+    ap.add_argument("--fashion-mnist", action="store_true", help="use FashionMNIST dataset")
+    ap.add_argument("--cifar10", action="store_true", help="use CIFAR10 dataset")
 
     # model related options
     ap.add_argument("--model", default="MobileNetV2")
@@ -63,6 +73,9 @@ def parse_args():
     # MLPMixer
     ap.add_argument("--mlp-mixer-layers", type=int, default=12, help="number of layers in MLPMixer")
     ap.add_argument("--mlp-mixer-dim", type=int, default=512, help="size of hidden dimension in MLPMixer")
+
+    # Fully Connected model
+    ap.add_argument("--fc-batchnorm", action="store_true", help="use batchnorm in the fully connected model")
 
     # algorithm specific options
     # Local search
@@ -96,6 +109,8 @@ def load_model(model_name, num_classes, args):
     elif model_name == "MLPMixer":
         return MLPMixer(image_size=224, channels=3, patch_size=16, dim=args.mlp_mixer_dim,
                         depth=args.mlp_mixer_layers, num_classes=num_classes)
+    elif model_name == "FullyConnected":
+        return FullyConnected(num_classes, color_input=args.cifar10, with_batchnorm=args.fc_batchnorm)
     else:
         raise ValueError(f"unknown model: {model_name}")
 
@@ -178,11 +193,36 @@ def main():
     device = torch.device(f"cuda:{args.device}") if torch.cuda.is_available() else torch.device("cpu")
     print("using device:", device)
 
-    num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
+    if args.mnist:
+        num_classes = 10
+        ds = MNIST("datasets", train=True,
+                   transform=Compose([ToTensor(), Normalize((0.1307,), (0.3081,))]), download=True)
+        test_ds = MNIST("datasets", train=False,
+                        transform=Compose([ToTensor(), Normalize((0.1307,), (0.3081,))]), download=True)
+    elif args.fashion_mnist:
+        num_classes = 10
+        ds = FashionMNIST("datasets", train=True,
+                          transform=Compose([ToTensor(), Normalize((0.2860,), (0.3530,))]), download=True)
+        test_ds = FashionMNIST("datasets", train=False,
+                               transform=Compose([ToTensor(), Normalize((0.2860,), (0.3530,))]), download=True)
+    elif args.cifar10:
+        num_classes = 10
+        ds = CIFAR10("datasets", train=True,
+                     transform=Compose([ToTensor(), Normalize((0.49139968, 0.48215841, 0.44653091),
+                                                              (0.24703223, 0.24348513, 0.26158784))]), download=True)
+        test_ds = CIFAR10("datasets", train=False,
+                          transform=Compose([ToTensor(), Normalize((0.49139968, 0.48215841, 0.44653091),
+                                                                   (0.24703223, 0.24348513, 0.26158784))]),
+                          download=True)
+    else:
+        num_classes, ds, test_ds = load_imagenette(ds_config, augment=augment)
 
     algo = load_algorithm(algo_name, config["model_config"][model_name], num_classes, args)
 
-    train_ds, validation_ds = random_split(ds, [train_fraction, 1.0-train_fraction])
+    if not args.test_set:
+        train_ds, eval_ds = random_split(ds, [train_fraction, 1.0-train_fraction])
+    else:
+        train_ds, eval_ds = ds, test_ds
 
     print(num_classes)
 
@@ -210,6 +250,7 @@ def main():
     run_name = compute_run_name(args)
     logger = WandbLogger(project="binary nn extended", name=run_name, config={
         "args": args,
+        "eval is test set": args.test_set,
         "model": model_name,
         "parameters": n_params,
         "optimizer": opt,
@@ -260,7 +301,7 @@ def main():
         print("evaluating on validation set")
         for metric in metrics.values():
             metric.reset()
-        pbar = tqdm(eval_classification_iterator(model, validation_ds, metrics, batch_size=bs, device=device))
+        pbar = tqdm(eval_classification_iterator(model, eval_ds, metrics, batch_size=bs, device=device))
         for r in pbar:
             pbar.set_description(f"{r}")
 

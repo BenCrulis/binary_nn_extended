@@ -34,3 +34,9 @@ model_config:
     prevent_binarization:
       - encoder.conv1.0 EncoderLayer.layer.0
       - decoder.conv5.2 DecoderLayer.layer.2
+
+  FullyConnected:
+    output_layer: output
+    prevent_binarization:
+      - layers.1
+      - output
