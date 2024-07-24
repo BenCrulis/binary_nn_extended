@@ -1,4 +1,5 @@
 import gc
+from copy import deepcopy
 
 import torch
 from torch import nn
@@ -26,7 +27,7 @@ class LS(ConfigurableMixin):
         i = torch.randint(0, len(candidate_modules), (1,)).item()
         mod = candidate_modules[i]
 
-        old_state = mod.state_dict()
+        old_state = deepcopy(mod.state_dict())
 
         y_pred1 = model(x)
         l1 = loss_fn(y_pred1, y)
