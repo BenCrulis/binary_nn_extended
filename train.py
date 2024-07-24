@@ -252,6 +252,7 @@ def main():
         "args": args,
         "eval is test set": args.test_set,
         "model": model_name,
+        "model arch": str(model),
         "parameters": n_params,
         "optimizer": opt,
         "algorithm": algo_name,
