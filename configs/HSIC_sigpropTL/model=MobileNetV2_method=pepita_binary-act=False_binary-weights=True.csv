@@ -1,0 +1,6 @@
+binary-act: false
+binary-weights: true
+lr: 0.0001
+method: pepita
+model: MobileNetV2
+pepita-gain: 0.01

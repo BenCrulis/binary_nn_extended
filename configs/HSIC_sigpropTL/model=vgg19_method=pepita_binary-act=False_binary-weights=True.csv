@@ -1,0 +1,6 @@
+binary-act: false
+binary-weights: true
+lr: 1.0e-05
+method: pepita
+model: vgg19
+pepita-gain: 0.1

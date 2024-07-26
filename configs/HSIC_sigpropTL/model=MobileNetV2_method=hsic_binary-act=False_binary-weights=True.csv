@@ -1,0 +1,6 @@
+binary-act: false
+binary-weights: true
+hsic-gamma: 20
+lr: 0.0001
+method: hsic
+model: MobileNetV2

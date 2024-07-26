@@ -1,0 +1,6 @@
+binary-act: false
+binary-weights: true
+hsic-gamma: 20
+lr: 1.0e-05
+method: hsic
+model: MLPMixer

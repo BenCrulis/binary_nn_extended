@@ -1,0 +1,6 @@
+binary-act: false
+binary-weights: true
+lr: 0.001
+method: pepita
+model: MLPMixer
+pepita-gain: 0.01
