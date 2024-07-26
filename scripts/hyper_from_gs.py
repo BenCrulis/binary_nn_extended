@@ -11,8 +11,8 @@ import pandas as pd
 
 aliases = {
     "algorithm": "method",
-    "binary activations": "binary-act",
-    "binary weights": "binary-weights"
+    # "binary activations": "binary-act",
+    # "binary weights": "binary-weights"
 }
 
 
@@ -61,8 +61,12 @@ if out_path is not None:
 
 df = pd.read_csv(input_path)
 
+print(df.columns)
 df = df.rename(aliases, axis="columns")
+df = df[[algorithm_to_method(x) for x in ["id", args.metric] + args.by + args.targets]]
+print(df.columns)
 
+# df = df[~pd.isna(df[args.metric])]
 table = df.groupby("id").min() if args.minimize else df.groupby("id").max()
 
 print(table)
